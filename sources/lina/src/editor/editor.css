@@ -1,0 +1,526 @@
+/* 编辑器 chrome —— 中文界面，不挡柜体主视线 */
+
+.ed-root {
+  /* 包裹编辑器全部固定层，供 inert 排除 */
+  display: contents;
+}
+
+.ed-chrome {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 80;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+}
+
+.ed-chrome > * {
+  pointer-events: auto;
+}
+
+.ed-chrome__main,
+.ed-chrome__btn {
+  border: 1.5px solid #1a1c20;
+  background: #fff;
+  color: #14161a;
+  font: 600 13px/1 "Noto Sans SC", Inter, system-ui, sans-serif;
+  padding: 8px 14px;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(20, 22, 26, 0.12);
+  cursor: pointer;
+}
+
+.ed-chrome__main[data-on] {
+  background: #1b28d8;
+  color: #fff;
+  border-color: #1b28d8;
+}
+
+.ed-chrome__btn {
+  background: #f8f7fa;
+  font-weight: 500;
+}
+
+.ed-toolbar {
+  position: fixed;
+  top: 58px;
+  right: 14px;
+  z-index: 81;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  max-width: min(520px, calc(100vw - 28px));
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #d8d6e0;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(20, 22, 26, 0.14);
+  font: 12px/1.2 "Noto Sans SC", Inter, system-ui, sans-serif;
+}
+
+.ed-toolbar__id {
+  font-weight: 700;
+  color: #1b28d8;
+}
+
+.ed-toolbar__field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ed-toolbar__field span {
+  color: #6b6f7a;
+}
+
+.ed-toolbar__field select,
+.ed-toolbar__field input[type='number'] {
+  border: 1px solid #c9c7d1;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font: inherit;
+  max-width: 120px;
+}
+
+.ed-toolbar__field input[type='number'] {
+  width: 56px;
+}
+
+.ed-toolbar__field input[type='color'] {
+  width: 32px;
+  height: 28px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.ed-toolbar__btn {
+  border: 1px solid #c9c7d1;
+  background: #f4f3f8;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ed-colors {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  z-index: 60;
+  width: min(280px, calc(100vw - 28px));
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #d8d6e0;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(20, 22, 26, 0.16);
+  font: 12px/1.35 "Noto Sans SC", Inter, system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.ed-colors__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eceaf2;
+}
+
+.ed-colors__toggle {
+  border: none;
+  background: transparent;
+  color: #1b28d8;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ed-colors__body {
+  padding: 8px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.ed-colors__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.ed-colors__label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+}
+
+.ed-colors__label small {
+  font-weight: 400;
+  color: #8a8e99;
+}
+
+.ed-colors__row input[type='color'] {
+  width: 36px;
+  height: 28px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.ed-colors__reset {
+  border: 1px solid #d8d6e0;
+  background: #f8f7fa;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.ed-colors__danger {
+  margin-top: 4px;
+  border: 1px solid #e8b7b7;
+  background: #fff5f5;
+  color: #a12828;
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ed-imgbar {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+
+.ed-imgbar__btn {
+  border: none;
+  background: rgba(20, 22, 26, 0.78);
+  color: #fff;
+  font: 600 11px/1 "Noto Sans SC", sans-serif;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* 编辑模式：Credit 稍微抬高，避免与配色面板叠死 */
+html[data-edit-mode='1'] .cr {
+  bottom: auto;
+  top: auto;
+  left: 14px;
+  bottom: calc(14px + min(52vh, 360px));
+}
+
+@media (max-width: 640px) {
+  .ed-chrome {
+    top: auto;
+    bottom: 14px;
+    right: 14px;
+    left: 14px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .ed-toolbar {
+    top: auto;
+    bottom: 64px;
+    right: 14px;
+    left: 14px;
+    max-width: none;
+  }
+  .ed-colors {
+    left: 14px;
+    right: 14px;
+    width: auto;
+    bottom: 120px;
+  }
+}
+
+
+.idc__avatarWrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.idc__avatarWrap .ed-imgbar--overlay {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+}
+
+.idc__avatar--photo,
+.idc__avatar--photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pw__editImg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pw__editImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ed-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px dashed rgba(27, 40, 216, 0.35);
+  border-radius: 10px;
+  color: #14161a;
+}
+
+.ed-link__label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 180px;
+  font: 600 11px/1.2 "Noto Sans SC", sans-serif;
+  color: #1b28d8;
+}
+
+.ed-link__input {
+  border: 1px solid #c9c7d1;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font: 12px/1.3 Inter, system-ui, sans-serif;
+  color: #14161a;
+  width: 100%;
+}
+
+.ed-link__reset {
+  border: 1px solid #c9c7d1;
+  background: #f4f3f8;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: 600 11px/1 "Noto Sans SC", sans-serif;
+  cursor: pointer;
+  height: 32px;
+}
+
+.vl__coverWrap,
+.wsc__coverWrap,
+.mb__faceEdit {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.vl__coverWrap {
+  border-radius: 3px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: #101215;
+}
+
+.pd__editStrip {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 56px;
+  z-index: 8;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #d8d6e0;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(20, 22, 26, 0.14);
+  max-width: calc(100% - 24px);
+}
+
+.pd__editCard {
+  flex: 0 0 92px;
+  width: 92px;
+}
+
+.pd__editThumb {
+  position: relative;
+  width: 92px;
+  height: 122px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #eceaf2;
+}
+
+.pd__editTitle {
+  margin-top: 4px;
+  font: 600 9px/1.25 "Noto Sans SC", sans-serif;
+  color: #14161a;
+  max-height: 2.5em;
+  overflow: hidden;
+}
+
+.pd__editNote {
+  position: absolute;
+  left: 12px;
+  bottom: 18px;
+  z-index: 8;
+  margin: 0;
+  font: 11px/1.35 "Noto Sans SC", sans-serif;
+  color: #6b6f7a;
+  background: rgba(255,255,255,.88);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+
+.wsc__editCover {
+  position: absolute !important;
+  inset: 0;
+  z-index: 0;
+}
+.wsc__editCover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.wsc__card .wsc__bar {
+  position: relative;
+  z-index: 1;
+}
+.wsc__open--below {
+  display: inline-flex;
+  margin-top: 10px;
+}
+.mb__editImg {
+  position: absolute !important;
+  inset: 0;
+}
+.mb__editImg img,
+.mb__face .mb__editImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+/* 柜体人物贴图替换条 —— 编辑态底部居中 */
+.ed-sceneStrip {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 80;
+  width: min(920px, calc(100vw - 28px));
+  max-height: min(42vh, 280px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #d8d6e0;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(20, 22, 26, 0.16);
+  font: 12px/1.35 "Noto Sans SC", Inter, system-ui, sans-serif;
+  pointer-events: auto;
+}
+
+.ed-sceneStrip__note {
+  margin: 0;
+  color: #5a5e6a;
+  font-weight: 600;
+}
+
+.ed-sceneStrip__row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ed-sceneStrip__card {
+  flex: 0 0 auto;
+  width: 108px;
+}
+
+.ed-sceneStrip__thumb {
+  width: 108px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #eee;
+  border: 1px solid #e2e0e8;
+}
+
+.ed-sceneStrip__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ed-sceneStrip__title {
+  margin-top: 4px;
+  font-weight: 600;
+  color: #1a1c20;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ed-sceneStrip__actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* 有关闭钮时编辑钮让开右侧圆形按钮 */
+html:has(.ov__close) .ed-chrome {
+  right: 78px;
+}
+
+html:has(.ov__close) .ed-toolbar {
+  right: 78px;
+}
+
+/* 编辑态：人物换图条抬起配色面板，避免叠死 */
+html[data-edit-mode='1'] .ed-colors {
+  bottom: calc(14px + min(42vh, 280px) + 10px);
+}
+
+html[data-edit-mode='1'] .cr {
+  bottom: calc(14px + min(42vh, 280px) + min(52vh, 200px));
+}
+
+@media (max-width: 640px) {
+  .ed-sceneStrip {
+    left: 14px;
+    right: 14px;
+    width: auto;
+    transform: none;
+    bottom: 70px;
+    max-height: 36vh;
+  }
+  html[data-edit-mode='1'] .ed-colors {
+    bottom: calc(70px + min(36vh, 240px) + 8px);
+  }
+  html:has(.ov__close) .ed-chrome {
+    right: 14px;
+  }
+}
