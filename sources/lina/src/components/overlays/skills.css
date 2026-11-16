@@ -1,0 +1,529 @@
+.sk {
+  position: relative;
+  width: min(88vw, 430px);
+  aspect-ratio: 1.04;
+  max-height: 62vh;
+  /* 换位过程中卡片会滑到容器外，阴影和边缘不能被裁掉（§10.2） */
+  overflow: visible;
+  /* 展开模式的位移与缩放。卡片本身是绝对定位的整块，缩放整张比逐条改字号
+     可靠：版式不会在两种模式之间变形。位移写成百分比 —— translate 的百分比
+     按元素自身尺寸算，也就是一张卡的宽 / 高，卡组多大间距就跟着多大。
+     宽屏左中右：0.82 卡宽 ≈ 前卡半宽(0.39) + 侧卡半宽(0.36) + 一点缝。 */
+  --sk-fan-x: 82%;
+  --sk-fan-y: 0%;
+  --sk-fan-r: 5deg;
+  --sk-fan-s: 0.72;
+  --sk-fan-front-s: 0.78;
+}
+
+/* 窄屏一行排不下三张（390px 上要缩到 0.35 才塞得进，正文就没法看了），
+   改成上中下三行：卡片能留在 0.5 上，三张仍然全在画面里。 */
+@media (max-width: 860px) {
+  .sk {
+    --sk-fan-x: 0%;
+    --sk-fan-y: 56%;
+    --sk-fan-r: 1.5deg;
+    --sk-fan-s: 0.48;
+    --sk-fan-front-s: 0.5;
+  }
+}
+
+/* 展开时按卡片中心缩放，三张的间距才和上面算出来的一致；
+   堆叠仍以底边为原点（后层卡从底下顶上来的错落感靠它） */
+.sk[data-spread] .sk__card {
+  transform-origin: 50% 50%;
+}
+
+/* 展开态：三张都在画面里，阴影收一点，免得互相压出脏边 */
+.sk[data-spread] .sk__card {
+  box-shadow:
+    0 14px 30px rgba(30, 44, 70, 0.16),
+    0 2px 4px rgba(30, 44, 70, 0.08);
+}
+
+/* 堆叠 / 展开切换。放在卡组下方居中，和右上角的关闭按钮分开 */
+.sk__dock {
+  position: fixed;
+  left: 50%;
+  bottom: max(clamp(18px, 4vh, 40px), env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: calc(100% - 24px);
+  animation: skModeIn 0.46s var(--ease-out) backwards 0.14s;
+}
+
+@keyframes skModeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px);
+  }
+}
+
+.sk__mode {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: #16181c;
+  color: #fff;
+  font-family: var(--font-cn);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 20px rgba(20, 24, 32, 0.24);
+  transition:
+    background-color 0.3s var(--ease-out),
+    transform 0.3s var(--ease-out);
+}
+
+.sk__mode:hover {
+  background: var(--cyan);
+  transform: translateY(-2px);
+}
+
+/* 三根小竖条：堆叠时叠在一起，展开时分开 */
+.sk__mode i {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: 18px;
+  justify-content: center;
+}
+
+.sk__mode i span {
+  width: 3px;
+  height: 13px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 0.32s var(--ease-out);
+}
+
+.sk__mode i:not([data-spread]) span:first-child {
+  transform: translateX(5px);
+}
+
+.sk__mode i:not([data-spread]) span:last-child {
+  transform: translateX(-5px);
+}
+
+/* 只给屏幕阅读器的说明与状态播报 */
+.sk__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.sk__card {
+  position: absolute;
+  inset: 0;
+  border-radius: 30px;
+  padding: clamp(20px, 3vw, 34px) clamp(20px, 3.2vw, 36px) clamp(18px, 2.6vw, 30px);
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  overflow: hidden;
+  transform-origin: 50% 100%;
+  box-shadow:
+    0 20px 44px rgba(30, 44, 70, 0.17),
+    0 2px 5px rgba(30, 44, 70, 0.08);
+  /* transform / opacity 的过渡由 SkillsDeck 按换位阶段内联给出 */
+  animation: skIn 0.7s var(--ease-out) backwards var(--in-delay, 0s);
+  will-change: transform;
+}
+
+@keyframes skIn {
+  from {
+    opacity: 0;
+    transform: translateY(52px) scale(0.9);
+  }
+}
+
+/* 入场只跑一次；之后 transform / opacity 完全交给内联过渡，
+   避免 animation 覆盖 transition 造成卡片二次入场 */
+.sk[data-entered] .sk__card {
+  animation: none;
+}
+
+/* Reduced Motion：顺序直接切换，只保留一次短淡化提示层级变了（§10.2 / §11.3）。
+   这里必须用带特异性的 !important 覆盖 global.css 对 * 的动效压制。 */
+@media (prefers-reduced-motion: reduce) {
+  .sk__card[data-stage='back'] {
+    animation: skFade 150ms linear !important;
+  }
+}
+
+@keyframes skFade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* 右上角细圆弧装饰 */
+.sk__arc {
+  position: absolute;
+  right: -22%;
+  top: -14%;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  opacity: 0.26;
+  pointer-events: none;
+}
+
+.sk__kicker {
+  font-size: clamp(7.6px, 0.9vw, 10px);
+  letter-spacing: 0.24em;
+  opacity: 0.72;
+  text-transform: uppercase;
+}
+
+.sk__title {
+  margin-top: clamp(10px, 1.6vw, 20px);
+  /* 参考是超粗黑体，不是宋体 */
+  font-family: var(--font-cn);
+  font-weight: 900;
+  font-size: clamp(38px, 6.2vw, 64px);
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+}
+
+.sk__desc {
+  margin-top: clamp(4px, 0.5vw, 7px);
+  font-family: var(--font-cn);
+  font-weight: 500;
+  font-size: clamp(11px, 1.15vw, 13px);
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+.sk__spacer {
+  flex: 1;
+  min-height: 14px;
+}
+
+.sk__rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.sk__row {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  align-items: baseline;
+  gap: 8px;
+  padding: clamp(7px, 1vw, 10px) 0 clamp(5px, 0.7vw, 7px);
+  border-top: 1px solid currentColor;
+}
+
+.sk__row:first-child {
+  border-top-color: currentColor;
+}
+
+.sk__k {
+  font-size: clamp(7.4px, 0.86vw, 9.6px);
+  letter-spacing: 0.16em;
+  opacity: 0.62;
+  text-transform: uppercase;
+}
+
+.sk__v {
+  font-family: var(--font-cn);
+  font-size: clamp(11px, 1.16vw, 13.4px);
+  font-weight: 500;
+}
+
+/* ── 卡面「查看详情」 ─────────────────────────────────── */
+.sk__detail-btn {
+  align-self: flex-start;
+  margin-top: clamp(10px, 1.4vw, 16px);
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-cn);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  opacity: 0.92;
+  transition:
+    background-color 0.25s var(--ease-out),
+    color 0.25s var(--ease-out),
+    opacity 0.25s var(--ease-out),
+    transform 0.25s var(--ease-out);
+}
+
+.sk__detail-btn:hover {
+  opacity: 1;
+  background: #16181c;
+  color: #fff;
+  border-color: #16181c;
+  transform: translateY(-1px);
+}
+
+.sk__detail-btn--hint {
+  display: inline-flex;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0.88;
+  background: rgba(22, 24, 28, 0.08);
+}
+
+.sk__mode--ghost {
+  background: rgba(255, 255, 255, 0.72);
+  color: #16181c;
+  border: 1.5px solid rgba(22, 24, 28, 0.18);
+  box-shadow: 0 6px 18px rgba(30, 44, 70, 0.12);
+}
+
+.sk__mode--ghost:hover {
+  background: #fff;
+  color: #16181c;
+}
+
+/* ── 二层详情面板 ─────────────────────────────────────── */
+.sk-detail {
+  position: relative;
+  z-index: 55;
+  width: min(92vw, 560px);
+  max-height: min(82vh, 780px);
+  overflow: auto;
+  border-radius: 28px;
+  padding: clamp(22px, 3.2vw, 36px) clamp(22px, 3.4vw, 40px) clamp(20px, 2.8vw, 32px);
+  box-shadow:
+    0 24px 56px rgba(30, 44, 70, 0.22),
+    0 2px 6px rgba(30, 44, 70, 0.1);
+  text-align: left;
+  animation: skDetailIn 0.42s var(--ease-out);
+  overscroll-behavior: contain;
+}
+
+@keyframes skDetailIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+}
+
+.sk-detail__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.sk-detail__kicker {
+  font-size: clamp(8px, 0.95vw, 11px);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.sk-detail__title {
+  font-family: var(--font-cn);
+  font-weight: 900;
+  font-size: clamp(32px, 5.4vw, 48px);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.sk-detail__headline {
+  margin: 4px 0 0;
+  font-family: var(--font-cn);
+  font-weight: 700;
+  font-size: clamp(15px, 1.6vw, 18px);
+  line-height: 1.35;
+  opacity: 0.95;
+}
+
+.sk-detail__lead {
+  margin: 0 0 18px;
+  font-family: var(--font-cn);
+  font-size: clamp(12px, 1.2vw, 14px);
+  line-height: 1.65;
+  opacity: 0.88;
+}
+
+.sk-detail__section {
+  margin-bottom: 16px;
+}
+
+.sk-detail__block {
+  padding: 10px 0;
+  border-top: 1px solid currentColor;
+}
+
+.sk-detail__block:last-child {
+  border-bottom: 1px solid currentColor;
+}
+
+.sk-detail__blockTitle {
+  margin: 0 0 4px;
+  font-family: var(--font-cn);
+  font-weight: 800;
+  font-size: clamp(13px, 1.3vw, 15px);
+}
+
+.sk-detail__blockBody {
+  margin: 0;
+  font-family: var(--font-cn);
+  font-size: clamp(12px, 1.15vw, 13.5px);
+  line-height: 1.55;
+  opacity: 0.9;
+}
+
+.sk-detail__label {
+  margin: 0 0 8px;
+  font-family: var(--font-cn);
+  font-weight: 800;
+  font-size: clamp(12px, 1.2vw, 14px);
+  letter-spacing: 0.04em;
+}
+
+.sk-detail__toolsNote {
+  margin: 0;
+  font-family: var(--font-cn);
+  font-size: clamp(12px, 1.15vw, 13.5px);
+  line-height: 1.55;
+  opacity: 0.9;
+}
+
+.sk-detail__projects {
+  margin: 0;
+  padding-left: 1.15em;
+  font-family: var(--font-cn);
+  font-size: clamp(12px, 1.15vw, 13.5px);
+  line-height: 1.55;
+}
+
+.sk-detail__projects li {
+  margin-bottom: 6px;
+}
+
+.sk-detail__project {
+  opacity: 0.92;
+}
+
+.sk-detail__tip {
+  margin: 8px 0 0;
+  font-family: var(--font-cn);
+  font-size: 11px;
+  opacity: 0.55;
+  letter-spacing: 0.02em;
+}
+
+.sk-detail__actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 18px;
+}
+
+.sk-detail__back {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: #16181c;
+  color: #fff;
+  font-family: var(--font-cn);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 18px rgba(20, 24, 32, 0.22);
+  transition:
+    background-color 0.28s var(--ease-out),
+    transform 0.28s var(--ease-out);
+}
+
+.sk-detail__back:hover {
+  background: var(--cyan, #5ad7ff);
+  color: #12141a;
+  transform: translateY(-1px);
+}
+
+.sk-detail__mobileCue {
+  display: none;
+}
+
+@media (max-width: 520px) {
+  .sk-detail {
+    width: min(96vw, 560px);
+    max-height: min(86vh, 100dvh - 48px);
+    border-radius: 22px;
+    padding: 16px 14px 18px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sk-detail__mobileCue {
+    display: block;
+    margin: 0 0 10px;
+    font-family: var(--font-cn);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    opacity: 0.7;
+  }
+
+  .sk-detail__title {
+    font-size: clamp(28px, 9vw, 40px);
+  }
+
+  .sk-detail__headline {
+    font-size: 16px;
+  }
+
+  .sk-detail__lead,
+  .sk-detail__blockBody,
+  .sk-detail__toolsNote,
+  .sk-detail__projects {
+    font-size: 14px;
+    line-height: 1.6;
+    opacity: 0.95;
+  }
+
+  .sk-detail__blockTitle,
+  .sk-detail__label {
+    font-size: 15px;
+  }
+
+  .sk-detail__tip {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  .sk-detail__actions {
+    position: sticky;
+    bottom: 0;
+    padding-top: 8px;
+    background: linear-gradient(to top, color-mix(in srgb, currentColor 6%, transparent), transparent);
+  }
+
+  .sk__dock {
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .sk__mode {
+    height: 40px;
+    padding: 0 14px;
+    font-size: 12px;
+  }
+}

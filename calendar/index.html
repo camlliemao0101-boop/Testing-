@@ -1,0 +1,2801 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f5a88">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="生活日历">
+<title>生活日历 · 本机记录</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  :root {
+    --denim: #3d6ea3;
+    --denim-deep: #2f5a88;
+    --paper: #fbfaf6;
+    --ink: #2c3a48;
+    --sky: #73bbd3;
+    --sky-deep: #5aa7c4;
+    --mint: #d7ebe2;
+    --mint-edge: #c3ddd2;
+    --soft: #eef5f8;
+    --muted: #7a8b99;
+    --shadow: rgba(24, 48, 72, 0.18);
+    --danger: #9a3b3b;
+    --warn-bg: #fff4df;
+    --warn-ink: #9a6b1f;
+    --radius-paper: 10px;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei",
+      "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    background: #1f3f63;
+    min-height: 100dvh;
+  }
+  button, .tab, .nav-pill, .btn, label.btn { touch-action: manipulation; -webkit-tap-highlight-color: rgba(115,187,211,.25); }
+  .tab, .btn, .nav-pill { min-height: 44px; }
+  .stage {
+    min-height: 100dvh;
+    padding: max(12px, env(safe-area-inset-top, 0px)) 12px calc(18px + var(--safe-b));
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(255,255,255,.12), transparent 42%),
+      radial-gradient(ellipse at 80% 90%, rgba(0,0,0,.18), transparent 45%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,.035) 0 1px, transparent 1px 4px),
+      linear-gradient(160deg, #4a7eb0 0%, var(--denim) 38%, var(--denim-deep) 100%);
+  }
+  .shell { width: min(430px, 100%); margin: 0 auto; }
+  @media (min-width: 768px) {
+    .stage { padding: 28px 24px 40px; }
+    .shell { width: min(820px, 100%); }
+    .layout-wide {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 18px;
+      align-items: start;
+    }
+    .side-panel { display: block; }
+  }
+  @media (max-width: 767px) { .side-panel { display: none; } }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    color: #fff; margin-bottom: 10px; gap: 10px;
+  }
+  .brand { font-weight: 700; letter-spacing: .02em; font-size: 15px; }
+  .brand small { display: block; font-weight: 500; opacity: .78; font-size: 11px; margin-top: 2px; }
+  .badge {
+    font-size: 11px; background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.28); padding: 6px 10px;
+    border-radius: 999px; white-space: nowrap;
+  }
+  .badge.warn { background: rgba(255, 210, 120, .22); border-color: rgba(255,220,150,.45); }
+  .badge.err { background: rgba(180, 40, 40, .35); border-color: rgba(255,180,180,.4); }
+  .banner {
+    display: none; margin: 0 0 12px; padding: 10px 12px; border-radius: 12px;
+    font-size: 12px; line-height: 1.55; background: var(--warn-bg); color: var(--warn-ink);
+  }
+  .banner.show { display: block; }
+  .banner.err { background: #fde8e8; color: var(--danger); }
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .tab {
+    appearance: none; border: 0; border-radius: 999px; padding: 10px 12px;
+    font: inherit; font-size: 13px; font-weight: 600; color: #eaf4fb;
+    background: rgba(255,255,255,.14); cursor: pointer;
+  }
+  .tab[aria-selected="true"] {
+    background: #fff; color: var(--denim-deep); box-shadow: 0 6px 16px rgba(0,0,0,.12);
+  }
+  .paper-wrap { position: relative; padding: 10px 4px 4px; overflow: visible; }
+  .paper {
+    position: relative;
+    background: linear-gradient(180deg, #fffefb 0%, var(--paper) 100%);
+    border-radius: var(--radius-paper);
+    box-shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 18px 40px var(--shadow), 0 2px 0 rgba(0,0,0,.04);
+    padding: 18px 14px 16px; overflow: hidden;
+  }
+  .paper::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(60,80,100,.035) 0.6px, transparent .7px);
+    background-size: 3px 3px; pointer-events: none; opacity: .55;
+  }
+  .month-head { position: relative; z-index: 2; padding: 2px 8px 8px; }
+  .month-title {
+    margin: 0; font-family: Georgia, "Times New Roman", "Songti SC", "Noto Serif SC", serif;
+    font-size: clamp(34px, 9vw, 46px); line-height: 1; color: var(--sky);
+    font-weight: 600; letter-spacing: -.02em;
+  }
+  .month-sub { margin: 4px 0 0; color: var(--sky-deep); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; }
+  .month-note {
+    margin-top: 8px; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--muted); background: var(--soft);
+    border-radius: 999px; padding: 4px 9px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mint-edge); border: 1px solid #9fc7b8; }
+  .nav-row {
+    position: relative; z-index: 2; display: flex; justify-content: space-between;
+    align-items: center; margin: 4px 4px 10px; color: var(--muted); font-size: 12px; gap: 8px;
+  }
+  .nav-pill {
+    border: 1px solid #d7e3ec; background: #fff; color: var(--denim-deep);
+    border-radius: 999px; padding: 6px 10px; font: inherit; font-size: 12px; cursor: pointer;
+  }
+  .nav-pill:disabled { opacity: .45; cursor: default; }
+  .nav-status { text-align: center; flex: 1; }
+  .grid {
+    position: relative; z-index: 2; display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px;
+  }
+  .dow {
+    text-align: center; font-size: 9px; letter-spacing: .08em;
+    color: var(--sky-deep); padding: 4px 0 6px; font-weight: 600;
+  }
+  .cell {
+    min-height: 58px; border-radius: 6px; border: 1px solid #e7eef3;
+    background: #fff; padding: 4px 3px 3px; display: flex; flex-direction: column;
+    align-items: flex-start; gap: 2px; overflow: hidden;
+    cursor: pointer; font: inherit; color: inherit; text-align: left; width: 100%;
+  }
+  .cell.empty { background: transparent; border-color: transparent; cursor: default; }
+  .cell.rest { background: var(--mint); border-color: var(--mint-edge); }
+  .cell.selected {
+    outline: 2px solid var(--sky); outline-offset: 0;
+    box-shadow: 0 0 0 3px rgba(115,187,211,.22);
+  }
+  .cell.today .num { text-decoration: underline; text-underline-offset: 1px; }
+  .num { font-size: 10px; color: var(--sky-deep); font-weight: 700; line-height: 1; display: flex; align-items: center; gap: 3px; width: 100%; }
+  .check-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sky-deep); display: inline-block; }
+  .snip {
+    font-size: 8.5px; line-height: 1.15; color: #445666; max-width: 100%;
+    overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+  .thumb-btn {
+    display: block; width: 100%; margin: 0; padding: 0; border: 0;
+    background: transparent; cursor: zoom-in; border-radius: 3px; line-height: 0;
+  }
+  .thumb { width: 100%; height: 22px; object-fit: cover; border-radius: 3px; display: block; pointer-events: none; }
+  .photo-open {
+    display: block; width: 72px; height: 72px; padding: 0; border: 0;
+    background: transparent; cursor: zoom-in; border-radius: 8px; line-height: 0;
+  }
+  .photo-open .thumb-edit { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; display: block; background: #eef3f6; pointer-events: none; }
+  @media (min-width: 768px) {
+    .cell { min-height: 74px; padding: 6px; }
+    .snip { font-size: 11px; }
+    .thumb { height: 30px; }
+    .num { font-size: 12px; }
+    .dow { font-size: 11px; }
+  }
+  .legend {
+    position: relative; z-index: 2; display: flex; flex-wrap: wrap;
+    gap: 8px 12px; margin-top: 10px; padding: 0 4px; font-size: 11px; color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; border: 1px solid #c9d7e2; display: inline-block; }
+  .swatch.rest { background: var(--mint); border-color: var(--mint-edge); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .diary {
+    margin-top: 12px; background: rgba(255,255,255,.94); border-radius: 14px;
+    padding: 14px; box-shadow: 0 10px 28px rgba(0,0,0,.12);
+  }
+  .diary-kicker { font-size: 11px; color: var(--sky-deep); letter-spacing: .08em; font-weight: 700; }
+  .diary h2 {
+    margin: 4px 0 8px; font-size: 18px;
+    font-family: Georgia, "Songti SC", "Noto Serif SC", serif; color: var(--ink);
+  }
+  .diary p { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: #405060; }
+  .field-label { display: block; font-size: 11px; color: var(--muted); margin: 0 0 6px; }
+  textarea, .text-input {
+    width: 100%; border: 1px solid #d7e3ec; border-radius: 10px; padding: 10px;
+    font: inherit; font-size: 14px; line-height: 1.55; color: var(--ink);
+    background: #fff; resize: vertical; min-height: 96px;
+  }
+  .text-input { min-height: 0; }
+  textarea:focus, .text-input:focus { outline: 2px solid rgba(115,187,211,.45); border-color: var(--sky); }
+  .tag {
+    display: inline-block; font-size: 10px; padding: 3px 8px; border-radius: 999px;
+    background: #eef6fa; color: var(--sky-deep); margin-right: 6px;
+  }
+  .tag.warn { background: var(--warn-bg); color: var(--warn-ink); }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .actions.triple { grid-template-columns: 1fr 1fr; }
+  .btn {
+    appearance: none; border: 0; border-radius: 12px; padding: 12px 10px;
+    font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.primary {
+    background: linear-gradient(180deg, #7fc3d9, #5da9c5); color: #fff;
+    box-shadow: 0 8px 16px rgba(70,140,170,.28);
+  }
+  .btn.ghost { background: #fff; color: var(--denim-deep); border: 1px solid #cfe0ea; }
+  .btn.quiet { background: #f4f8fb; color: var(--ink); border: 1px solid #d7e3ec; font-weight: 600; }
+  .btn-note { margin-top: 8px; font-size: 11px; color: rgba(255,255,255,.82); text-align: center; }
+  .status-line { margin: 8px 0 0; font-size: 11px; color: var(--muted); }
+  .status-line.err { color: var(--danger); }
+  .photo-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .photo-item { position: relative; width: 72px; }
+  .photo-item .photo-remove {
+    position: absolute; top: 4px; right: 4px; border: 0; border-radius: 999px;
+    width: 20px; height: 20px; font-size: 12px; background: rgba(0,0,0,.62); color: #fff; cursor: pointer;
+  }
+  .hidden-file { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+  .summary { position: relative; z-index: 2; }
+  .summary h2, .sum-title {
+    margin: 0 0 4px; font-family: Georgia, "Songti SC", "Noto Serif SC", serif;
+    color: var(--sky); font-size: clamp(22px, 5.5vw, 30px); line-height: 1.15;
+  }
+  .sum-title {
+    width: 100%; border: 0; border-bottom: 1px dashed #dce7ef; border-radius: 0;
+    background: transparent; padding: 0 0 6px; min-height: 0;
+  }
+  .summary .sub { margin: 0 0 14px; font-size: 11px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
+  .stats {
+    position: relative; z-index: 2; margin: 0 0 12px; padding: 10px 12px;
+    background: var(--soft); border-radius: 10px; font-size: 12px; line-height: 1.6; color: #405060;
+  }
+  .sum-meta { margin-top: 12px; font-size: 11px; color: var(--muted); }
+  .side-panel .paper { min-height: 280px; }
+  .side-copy { position: relative; z-index: 2; font-size: 13px; line-height: 1.7; color: #4a5c6c; }
+  .side-copy h3 { margin: 0 0 8px; font-size: 16px; font-family: Georgia, "Songti SC", serif; color: var(--sky-deep); }
+  .side-copy p { margin: 0 0 10px; }
+  .data-actions { display: grid; gap: 8px; margin-top: 10px; }
+  .mobile-data { margin-top: 12px; }
+  @media (min-width: 768px) { .mobile-data { display: none; } }
+  .foot { margin-top: 14px; text-align: center; color: rgba(255,255,255,.78); font-size: 11px; }
+  .modal-back {
+    display: none; position: fixed; inset: 0; background: rgba(20,36,52,.45);
+    z-index: 20; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-back.show { display: flex; }
+  .modal {
+    width: min(420px, 100%); background: #fff; border-radius: 16px; padding: 18px;
+    box-shadow: 0 20px 40px rgba(0,0,0,.2);
+  }
+  .modal h3 { margin: 0 0 8px; font-size: 16px; }
+  .modal p { margin: 0 0 12px; font-size: 13px; line-height: 1.6; color: #405060; }
+  .modal .actions { margin-top: 0; }
+  .review-preview {
+    margin: 0 0 12px; padding: 10px 12px; max-height: min(40vh, 280px); overflow: auto;
+    background: var(--soft); border-radius: 10px; white-space: pre-wrap; word-break: break-word;
+    font-size: 13px; line-height: 1.65; color: var(--ink);
+  }
+  .lightbox {
+    display: none; position: fixed; inset: 0; z-index: 40;
+    background: rgba(12, 24, 36, .86);
+    padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+    box-sizing: border-box;
+  }
+  .lightbox.show { display: flex; align-items: center; justify-content: center; }
+  .lightbox-ui {
+    position: relative; width: min(920px, 100%); height: 100%;
+    display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  }
+  .lightbox-toolbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0;
+  }
+  .lightbox-caption {
+    margin: 0; color: #eaf4fb; font-size: 13px; line-height: 1.45; flex: 1;
+  }
+  .lightbox-close, .lightbox-nav {
+    appearance: none; border: 0; min-width: 44px; min-height: 44px; border-radius: 12px;
+    font: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+    background: #fff; color: var(--denim-deep);
+  }
+  .lightbox-nav:disabled { opacity: .35; cursor: default; }
+  .lightbox-body { flex: 1; min-height: 0; display: flex; align-items: center; gap: 8px; }
+  .lightbox-stage {
+    flex: 1; min-width: 0; min-height: 0; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    overflow: auto;
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+  .lightbox-stage img {
+    max-width: 100%; max-height: 100%; width: auto; height: auto;
+    object-fit: contain; display: block; background: #0c1824;
+    touch-action: pan-x pan-y pinch-zoom;
+    cursor: zoom-out;
+  }
+  .lightbox-stage img.is-ghost { opacity: 0; }
+  .lightbox.is-flipping .lightbox-toolbar,
+  .lightbox.is-flipping .lightbox-nav {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .lightbox-toolbar,
+  .lightbox-nav {
+    transition: opacity 220ms ease;
+  }
+  .is-lightbox-source { opacity: 0; }
+  #lightbox-flyer {
+    position: fixed; z-index: 45; margin: 0; padding: 0; border: 0;
+    left: 0; top: 0; width: 1px; height: 1px;
+    max-width: none; max-height: none;
+    pointer-events: none; object-fit: cover;
+    transform-origin: top left;
+    background: #0c1824; border-radius: 3px;
+    box-shadow: 0 10px 28px rgba(12, 24, 36, .32);
+    display: none;
+  }
+  #lightbox-flyer.show { display: block; }
+  @media (prefers-reduced-motion: reduce) {
+    .lightbox-toolbar, .lightbox-nav { transition: none; }
+    #lightbox-flyer { display: none !important; }
+  }
+  .play-row { margin-top: 10px; display: flex; justify-content: center; }
+  .playback {
+    display: none; position: fixed; inset: 0; z-index: 50;
+    background: rgba(12, 24, 36, .88);
+    padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+    box-sizing: border-box;
+  }
+  .playback.show { display: flex; align-items: center; justify-content: center; }
+  .playback-ui {
+    position: relative; width: min(560px, 100%); max-height: 100%;
+    display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  }
+  .playback-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; }
+  .playback-caption { margin: 0; color: #eaf4fb; font-size: 13px; line-height: 1.45; flex: 1; }
+  .playback-card {
+    background: linear-gradient(180deg, #fffefb 0%, var(--paper) 100%);
+    border-radius: var(--radius-paper);
+    box-shadow: 0 18px 40px var(--shadow);
+    padding: 18px 16px 16px; overflow: auto; min-height: 160px;
+    color: var(--ink); flex: 1; max-height: calc(100dvh - 230px);
+  }
+  .playback-kicker { font-size: 11px; color: var(--sky-deep); letter-spacing: .08em; font-weight: 700; }
+  .playback-card h2 {
+    margin: 4px 0 8px; font-family: Georgia, "Times New Roman", "Songti SC", "Noto Serif SC", serif;
+    color: var(--sky); font-size: clamp(26px, 7vw, 36px); line-height: 1.15; font-weight: 600;
+  }
+  .playback-card .tag { margin-right: 6px; }
+  .playback-text { margin: 8px 0 0; font-size: 15px; line-height: 1.75; white-space: pre-wrap; word-break: break-word; }
+  .playback-empty { margin: 8px 0 0; font-size: 14px; line-height: 1.65; color: #405060; }
+  .playback-photos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .playback-photos img {
+    width: 100%; max-height: 42vh; object-fit: contain; border-radius: 8px;
+    background: #0c1824; display: block;
+  }
+  .playback-photos.multi img { width: calc(50% - 4px); max-height: 28vh; object-fit: cover; }
+  .playback-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; flex-wrap: wrap; flex-shrink: 0;
+  }
+  .playback-speed { display: flex; gap: 6px; }
+  .playback-speed .btn { min-height: 44px; padding: 0 14px; }
+  .playback-speed .btn[aria-pressed="true"] {
+    background: #fff; color: var(--denim-deep); font-weight: 700;
+  }
+  .playback-remain { margin: 0; color: rgba(234,244,251,.92); font-size: 12px; line-height: 1.45; }
+  .playback-photo-label { margin: 10px 0 0; font-size: 12px; color: #405060; }
+  .playback-controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .playback-hint { margin: 0; color: rgba(234,244,251,.88); font-size: 12px; line-height: 1.55; }
+  .playback-stats {
+    margin: 0 0 12px; padding: 10px 12px; background: var(--soft);
+    border-radius: 10px; font-size: 12px; line-height: 1.6; color: #405060;
+  }
+  @media (max-width: 420px) {
+    .playback-controls { grid-template-columns: 1fr 1fr; }
+    .playback-controls #playback-replay { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="shell">
+      <div class="topbar">
+        <div class="brand">
+          Ryan 的生活日历
+          <small id="brand-sub">本机记录 · 可播放本月 · 自动回顾（非AI）</small>
+        </div>
+        <div class="badge" id="store-badge">正在检查本机存储</div>
+      </div>
+      <div class="banner show" id="status-banner">正在准备本机存储。请用 Safari 打开本页进行记录；记录不会上传到网站。</div>
+
+      <div class="tabs" role="tablist" aria-label="月历与月度总结">
+        <button class="tab" id="tab-cal" role="tab" aria-selected="true" aria-controls="panel-cal">月历</button>
+        <button class="tab" id="tab-sum" role="tab" aria-selected="false" aria-controls="panel-sum">月度总结</button>
+      </div>
+
+      <div class="layout-wide">
+        <div>
+          <section id="panel-cal" class="panel active" role="tabpanel" aria-labelledby="tab-cal">
+            <div class="paper-wrap">
+              <div class="paper">
+                <div class="month-head">
+                  <h1 class="month-title" id="month-title">November</h1>
+                  <p class="month-sub" id="month-sub">2026 · 生活手帐月历</p>
+                  <div class="month-note"><span class="dot"></span>薄荷绿格 = 你标记的休息日</div>
+                </div>
+                <div class="nav-row">
+                  <button type="button" class="nav-pill" id="btn-prev">‹ 上月</button>
+                  <div class="nav-status">周日起始 · <button type="button" class="nav-pill" id="btn-today">返回今天</button></div>
+                  <button type="button" class="nav-pill" id="btn-next">下月 ›</button>
+                </div>
+                <div class="grid" id="cal-grid" aria-label="月历"></div>
+                <div class="legend">
+                  <span><i class="swatch"></i>日常格</span>
+                  <span><i class="swatch rest"></i>休息日</span>
+                  <span>短句 / 缩略图来自你写下的记录；点照片可放大查看已保存的图片</span>
+                </div>
+                <div class="play-row">
+                  <button type="button" class="nav-pill" id="btn-play-month">播放本月</button>
+                </div>
+              </div>
+            </div>
+
+            <article class="diary" aria-label="选中日期的记录">
+              <div class="diary-kicker">SELECTED DAY</div>
+              <h2 id="diary-heading">选择一个日期</h2>
+              <p>
+                <span class="tag" id="tag-check">未打卡</span>
+                <span class="tag" id="tag-rest">非休息日</span>
+              </p>
+              <label class="field-label" for="diary-text">今日文字</label>
+              <textarea id="diary-text" placeholder="写下今天的记录…" maxlength="20000"></textarea>
+              <label class="field-label" style="margin-top:10px">照片（本机选取，保存前会压缩）</label>
+              <div class="photo-row" id="photo-row"></div>
+              <input id="photo-input" class="hidden-file" type="file" accept="image/*,image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif" multiple>
+              <div class="actions">
+                <button type="button" class="btn quiet" id="btn-add-photo">添加照片</button>
+                <button type="button" class="btn quiet" id="btn-toggle-rest">标记休息日</button>
+              </div>
+              <p class="status-line" id="photo-hint">每张原图不超过 8MB，保存前在本机压缩到最长边约 1600 像素、目标约 800KB；每天最多 6 张。不接受 SVG。iPhone 实况/HEIC 若无法解码，页面会明确报错，不会假装已保存；可先在「照片」中导出为 JPG 再添加。</p>
+            </article>
+
+            <div class="actions" aria-label="记录与打卡">
+              <button class="btn primary" type="button" id="btn-goto-today">记录今天</button>
+              <button class="btn ghost" type="button" id="btn-checkin">打卡</button>
+            </div>
+            <p class="btn-note" id="save-note">记录写在当前浏览器的本机存储中，不是云同步。存储失败时会明确提示，不会假装已保存。</p>
+
+            <div class="mobile-data paper-wrap">
+              <div class="paper side-copy">
+                <h3>备份</h3>
+                <div class="data-actions" data-data-actions></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="panel-sum" class="panel" role="tabpanel" aria-labelledby="tab-sum">
+            <div class="paper-wrap">
+              <div class="paper summary">
+                <label class="field-label" for="sum-title">本月标题（可改，本机保存）</label>
+                <input class="text-input sum-title" id="sum-title" maxlength="200" placeholder="可手写，或用自动回顾填写">
+                <p class="sub" id="sum-sub">MONTH IN REVIEW</p>
+                <div class="stats" id="month-stats"></div>
+                <label class="field-label" for="sum-body">月度回顾文稿（可手写，或根据记录自动整理；不是 AI）</label>
+                <textarea id="sum-body" placeholder="可在这里手写本月回顾，或点下方按钮根据记录自动整理。自动整理只做统计和按日摘录，不推断情绪或主题，也不是 AI。" maxlength="20000"></textarea>
+                <p class="sum-meta" id="sum-status">本页文稿保存在本机。上方数字是按记录直接计数。可生成「根据记录自动整理（非AI）」的回顾，预览确认后才写入。</p>
+                <div class="actions">
+                  <button type="button" class="btn primary" id="btn-generate-review">生成自动回顾（非AI）</button>
+                  <button type="button" class="btn ghost" id="btn-play-month-sum">播放本月</button>
+                </div>
+                <div class="actions">
+                  <button type="button" class="btn quiet" id="btn-export-month-text">导出本月文字</button>
+                </div>
+                <p class="sum-meta">生成或重新生成前会先预览。若总结框里已有内容，必须确认后才会覆盖。导出本月文字只生成本机文件（不含照片），不是另一次自动回顾。</p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="side-panel" aria-label="数据与说明">
+          <div class="paper-wrap">
+            <div class="paper side-copy">
+              <h3>本机保存与备份</h3>
+              <p>请用 iPhone 的 Safari 打开这个网址来记录。记录和照片只保存在<strong>这台手机、这个浏览器</strong>里，不会上传到网站。清理 Safari 网站数据、换浏览器或换设备都看不到同一份记录，请先导出备份。</p>
+              <p>备份：点「导出全部备份」后，优先使用系统分享，把 JSON 存到「文件」。添加到主屏幕：Safari 底部分享 → 添加到主屏幕。临时托管的链接会过期，到期前请保存这个网址并导出备份。</p>
+              <div class="data-actions" data-data-actions></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <p class="foot" id="host-note">本机草稿 · 可导出备份 · 可播放本月 · 可根据记录自动整理回顾（非AI）· 未接入云同步。若为临时托管链接，到期后页面会打不开，请提前导出备份。</p>
+    </div>
+  </div>
+
+  <div class="playback" id="playback" hidden>
+    <div class="playback-ui" role="dialog" aria-modal="true" aria-labelledby="playback-caption">
+      <div class="playback-toolbar">
+        <p class="playback-caption" id="playback-caption"></p>
+        <button type="button" class="lightbox-close" id="playback-exit">退出</button>
+      </div>
+      <div class="playback-card" id="playback-card"></div>
+      <div class="playback-meta">
+        <div class="playback-speed" role="group" aria-label="播放速度">
+          <button type="button" class="btn ghost" id="playback-speed-slow" aria-pressed="true">慢速</button>
+          <button type="button" class="btn ghost" id="playback-speed-normal" aria-pressed="false">正常</button>
+        </div>
+        <p class="playback-remain" id="playback-remain" aria-live="polite"></p>
+      </div>
+      <div class="playback-controls">
+        <button type="button" class="btn ghost" id="playback-pause">暂停</button>
+        <button type="button" class="btn primary" id="playback-resume">继续</button>
+        <button type="button" class="btn quiet" id="playback-replay">重播</button>
+      </div>
+      <p class="playback-hint" id="playback-hint"></p>
+    </div>
+  </div>
+
+  <div class="lightbox" id="lightbox" hidden>
+    <div class="lightbox-ui" role="dialog" aria-modal="true" aria-labelledby="lightbox-caption">
+      <div class="lightbox-toolbar">
+        <p class="lightbox-caption" id="lightbox-caption"></p>
+        <button type="button" class="lightbox-close" id="lightbox-close">关闭</button>
+      </div>
+      <div class="lightbox-body">
+        <button type="button" class="lightbox-nav" id="lightbox-prev" aria-label="上一张">‹</button>
+        <div class="lightbox-stage" id="lightbox-stage"><img id="lightbox-img" alt=""></div>
+        <button type="button" class="lightbox-nav" id="lightbox-next" aria-label="下一张">›</button>
+      </div>
+    </div>
+  </div>
+  <img id="lightbox-flyer" alt="" hidden>
+
+  <div class="modal-back" id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-title">
+    <div class="modal">
+      <h3 id="import-title">导入备份</h3>
+      <p id="import-msg">已读到备份文件。请选择如何处理与现有记录的关系。默认不会自动覆盖。</p>
+      <div class="actions">
+        <button type="button" class="btn quiet" id="import-cancel">取消</button>
+        <button type="button" class="btn ghost" id="import-merge">合并（同日以导入为准）</button>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn primary" id="import-replace">全部替换</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-back" id="review-modal" role="dialog" aria-modal="true" aria-labelledby="review-title">
+    <div class="modal">
+      <h3 id="review-title">预览自动回顾（非AI）</h3>
+      <p id="review-msg">根据本月真实记录整理统计和按日摘录，不推断情绪或主题，也不是 AI 生成。取消则不改动已有文稿。</p>
+      <div class="review-preview" id="review-preview"></div>
+      <div class="actions">
+        <button type="button" class="btn quiet" id="review-cancel">取消</button>
+        <button type="button" class="btn primary" id="review-apply">写入本机总结</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-back" id="play-review-modal" role="dialog" aria-modal="true" aria-labelledby="play-review-title">
+    <div class="modal">
+      <h3 id="play-review-title">本月还没有保存的回顾</h3>
+      <p id="play-review-msg">可以先到月度总结页生成并保存，播放结束就会展示已保存文稿。也可以继续播放：结束时会临时展示根据记录自动整理的回顾（非AI），不会写入或覆盖总结框。</p>
+      <div class="actions">
+        <button type="button" class="btn quiet" id="play-review-cancel">取消</button>
+        <button type="button" class="btn ghost" id="play-review-goto">去生成并保存</button>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn primary" id="play-review-temp">继续播放（临时回顾，不覆盖）</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var DB_NAME = "ryan-life-calendar";
+  var DB_VERSION = 1;
+  var MAX_TEXT = 20000;
+  var MAX_TITLE = 200;
+  var MAX_PHOTOS = 6;
+  var MAX_ORIGINAL = 8 * 1024 * 1024;
+  var MAX_COMPRESSED = 800 * 1024;
+  var MAX_EDGE = 1600;
+  var MAX_IMPORT_BYTES = 40 * 1024 * 1024;
+  var ALLOWED_MIME = { "image/jpeg": 1, "image/png": 1, "image/webp": 1, "image/gif": 1 };
+  var MONTHS_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var DOW = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+  var WEEKDAY_CN = ["日","一","二","三","四","五","六"];
+
+  var viewYear, viewMonth, selectedDate;
+  var days = Object.create(null);
+  var summaries = Object.create(null);
+  var gridUrls = [];
+  var editorUrls = [];
+  var lightboxUrls = [];
+  var photoBusy = 0;
+  var lightbox = { open: false, date: "", index: 0, lastFocus: null, ignoreSwipe: false, touchX: 0, touchY: 0, touchActive: false, prevOverflow: "", source: null, animating: false, suppressClick: false, touchMoved: false, touchMaxFingers: 0, flipAnims: [] };
+  var playback = { active: false, paused: false, ended: false, typing: false, busy: false, timer: null, typeTimer: null, remainTicker: null, remain: 0, armedAt: 0, stepDwell: 0, pace: "slow", typeIndex: 0, typeQueue: [], typeEl: null, steps: [], index: 0, skipped: 0, urls: [], lastFocus: null, prevOverflow: "", year: 0, month: 0 };
+  var persistMode = "none"; /* idb | memory */
+  var persistError = "";
+  var textTimer = null;
+  var sumTimer = null;
+  var pendingImport = null;
+  var pendingReview = null;
+  var db = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function pad(n) { return n < 10 ? "0" + n : String(n); }
+  function todayDate() {
+    var n = new Date();
+    return n.getFullYear() + "-" + pad(n.getMonth() + 1) + "-" + pad(n.getDate());
+  }
+  function ymd(y, m, d) { return y + "-" + pad(m) + "-" + pad(d); }
+  function monthKey(y, m) { return y + "-" + pad(m); }
+  function parseYmd(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || "");
+    if (!m) return null;
+    var y = +m[1], mo = +m[2], d = +m[3];
+    var dt = new Date(y, mo - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+    return { y: y, m: mo, d: d };
+  }
+  function parseYm(s) {
+    var m = /^(\d{4})-(\d{2})$/.exec(s || "");
+    if (!m) return null;
+    var y = +m[1], mo = +m[2];
+    if (mo < 1 || mo > 12) return null;
+    return { y: y, m: mo };
+  }
+  function emptyDay(date) {
+    return { date: date, text: "", checkedIn: false, rest: false, photos: [], updatedAt: Date.now() };
+  }
+  function getDay(date) {
+    if (!days[date]) days[date] = emptyDay(date);
+    return days[date];
+  }
+  function dayHasContent(rec) {
+    return !!(rec && (rec.text || rec.checkedIn || rec.rest || (rec.photos && rec.photos.length)));
+  }
+  function emptySummary(mk) {
+    return { month: mk, title: "", body: "", updatedAt: Date.now() };
+  }
+  function getSummary(mk) {
+    if (!summaries[mk]) summaries[mk] = emptySummary(mk);
+    return summaries[mk];
+  }
+  function revokeList(list) {
+    list.forEach(function (u) { try { URL.revokeObjectURL(u); } catch (e) {} });
+    list.length = 0;
+  }
+  function blobUrl(blob, into) {
+    var u = URL.createObjectURL(blob);
+    into.push(u);
+    return u;
+  }
+  function setPhotoHint(text, isErr) {
+    var el = $("photo-hint");
+    el.textContent = text;
+    el.classList.toggle("err", !!isErr);
+  }
+  function truncate(s, n) {
+    s = String(s == null ? "" : s);
+    return s.length > n ? s.slice(0, n) : s;
+  }
+  function safeKey(k) {
+    return typeof k === "string" && k !== "__proto__" && k !== "constructor" && k !== "prototype";
+  }
+
+  function setBanner(text, isErr) {
+    var el = $("status-banner");
+    el.textContent = text;
+    el.classList.toggle("show", !!text);
+    el.classList.toggle("err", !!isErr);
+  }
+  function setBadge(text, kind) {
+    var el = $("store-badge");
+    el.textContent = text;
+    el.className = "badge" + (kind === "warn" ? " warn" : kind === "err" ? " err" : "");
+  }
+  function setSaveNote(text, isErr) {
+    var el = $("save-note");
+    el.textContent = text;
+    el.style.color = isErr ? "#f3c2c2" : "";
+  }
+
+  function openDb() {
+    return new Promise(function (resolve, reject) {
+      if (!("indexedDB" in window)) {
+        reject(new Error("当前环境没有 IndexedDB"));
+        return;
+      }
+      var req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = function () {
+        var d = req.result;
+        if (!d.objectStoreNames.contains("days")) d.createObjectStore("days", { keyPath: "date" });
+        if (!d.objectStoreNames.contains("summaries")) d.createObjectStore("summaries", { keyPath: "month" });
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error || new Error("无法打开本机数据库")); };
+      req.onblocked = function () { reject(new Error("本机数据库被其他标签页占用")); };
+    });
+  }
+
+  function idbReq(txStore, method, arg) {
+    return new Promise(function (resolve, reject) {
+      var req = arg === undefined ? txStore[method]() : txStore[method](arg);
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error || new Error("本机读写失败")); };
+    });
+  }
+
+  function loadAllFromIdb(database) {
+    return new Promise(function (resolve, reject) {
+      var tx = database.transaction(["days", "summaries"], "readonly");
+      tx.onerror = function () { reject(tx.error || new Error("读取本机记录失败")); };
+      var out = { days: [], summaries: [] };
+      idbReq(tx.objectStore("days"), "getAll").then(function (rows) {
+        out.days = rows || [];
+        return idbReq(tx.objectStore("summaries"), "getAll");
+      }).then(function (rows) {
+        out.summaries = rows || [];
+        resolve(out);
+      }).catch(reject);
+    });
+  }
+
+  function persistDay(rec) {
+    if (persistMode !== "idb" || !db) return Promise.resolve(false);
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction("days", "readwrite");
+      tx.oncomplete = function () { resolve(true); };
+      tx.onerror = function () { reject(tx.error || new Error("保存日记失败")); };
+      tx.onabort = function () { reject(tx.error || new Error("保存日记被中断")); };
+      if (dayHasContent(rec)) tx.objectStore("days").put(rec);
+      else tx.objectStore("days").delete(rec.date);
+    });
+  }
+
+  function persistSummary(rec) {
+    if (persistMode !== "idb" || !db) return Promise.resolve(false);
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction("summaries", "readwrite");
+      tx.oncomplete = function () { resolve(true); };
+      tx.onerror = function () { reject(tx.error || new Error("保存月度总结失败")); };
+      tx.onabort = function () { reject(tx.error || new Error("保存月度总结被中断")); };
+      var empty = !(rec.title || rec.body);
+      if (empty) tx.objectStore("summaries").delete(rec.month);
+      else tx.objectStore("summaries").put(rec);
+    });
+  }
+
+  function clearIdb() {
+    return new Promise(function (resolve, reject) {
+      var tx = db.transaction(["days", "summaries"], "readwrite");
+      tx.oncomplete = function () { resolve(); };
+      tx.onerror = function () { reject(tx.error || new Error("清除本机数据失败")); };
+      tx.objectStore("days").clear();
+      tx.objectStore("summaries").clear();
+    });
+  }
+
+  function rememberDaySave(ok, err) {
+    if (persistMode === "idb") {
+      if (ok) {
+        persistError = "";
+        setBadge("已写入本机", "");
+        setSaveNote("已写入当前浏览器的本机存储。换浏览器或清理站点数据后不会同步过来。导出备份可另存一份。", false);
+      } else {
+        persistError = err || "保存失败";
+        setBadge("保存失败", "err");
+        setSaveNote("没有成功保存：" + persistError + "。请再试一次，或先导出备份以免丢失。", true);
+        setBanner("本机保存失败：" + persistError, true);
+      }
+    } else {
+      setBadge("仅内存，未持久化", "warn");
+      setSaveNote("当前不能写入本机数据库，记录只留在这个页面的内存里，关闭或刷新后会丢失。请不要以为已经保存。", true);
+    }
+  }
+
+  function afterDayChange(rec) {
+    persistDay(rec).then(function (ok) {
+      rememberDaySave(persistMode === "idb" ? ok || persistMode !== "idb" : false);
+      if (persistMode !== "idb") rememberDaySave(false);
+    }).catch(function (e) {
+      rememberDaySave(false, e && e.message ? e.message : String(e));
+    });
+    renderGrid();
+    updateDiaryMeta();
+    renderStats();
+  }
+
+  function afterSummaryChange(rec) {
+    persistSummary(rec).then(function (ok) {
+      if (persistMode === "idb" && ok) {
+        $("sum-status").textContent = "月度回顾已写入本机。上方为按记录直接计数的统计。自动回顾是根据记录整理（非AI）。";
+      } else if (persistMode !== "idb") {
+        $("sum-status").textContent = "月度回顾目前只在内存中，关闭页面后会丢失。";
+      }
+    }).catch(function (e) {
+      $("sum-status").textContent = "月度总结保存失败：" + (e && e.message ? e.message : String(e)) + "。未写入本机。";
+    });
+  }
+
+  function fileProtocolNote() {
+    if (location.protocol === "file:") {
+      return "当前以本地文件（file://）打开。在 iPhone 附件预览或部分浏览器里，本机存储可能被禁用，不能保证刷新后还在。建议用常规浏览器打开，或通过本地网页服务访问。";
+    }
+    return "";
+  }
+
+  function initStorage() {
+    return openDb().then(function (database) {
+      db = database;
+      return loadAllFromIdb(database);
+    }).then(function (data) {
+      persistMode = "idb";
+      (data.days || []).forEach(function (row) {
+        var rec = normalizeDayRecord(row, true);
+        if (rec) days[rec.date] = rec;
+      });
+      (data.summaries || []).forEach(function (row) {
+        var rec = normalizeSummaryRecord(row);
+        if (rec) summaries[rec.month] = rec;
+      });
+      var note = "记录保存在当前浏览器的本机数据库中。清理站点数据、换浏览器或换设备都不会共享。";
+      var fp = fileProtocolNote();
+      if (fp) {
+        setBanner(fp, false);
+        setBadge("本机存储已尝试开启", "warn");
+      } else {
+        setBanner(note, false);
+        setBadge("本机存储可用", "");
+      }
+      setSaveNote("写下内容后会尝试写入本机。成功或失败都会如实显示。", false);
+    }).catch(function (e) {
+      persistMode = "memory";
+      persistError = e && e.message ? e.message : String(e);
+      var msg = "无法使用本机数据库（" + persistError + "），现在只在内存中编辑，关闭或刷新后会丢失。";
+      var fp = fileProtocolNote();
+      if (fp) msg = fp + " " + msg;
+      setBanner(msg, true);
+      setBadge("未持久化", "err");
+      setSaveNote("本机存储不可用，不能宣称已保存。请先导出备份。", true);
+    });
+  }
+
+  function normalizePhoto(p, allowBlob) {
+    if (!p || typeof p !== "object") return null;
+    var mime = String(p.mime || p.type || "").toLowerCase();
+    if (!ALLOWED_MIME[mime]) return null;
+    var name = truncate(p.name || "photo", 120).replace(/[<>]/g, "");
+    var blob = allowBlob && p.blob instanceof Blob ? p.blob : null;
+    if (!blob && typeof p.data === "string") {
+      blob = dataUrlToBlob(p.data, mime);
+    }
+    if (!blob || blob.size > MAX_COMPRESSED * 2) return null;
+    return { id: String(p.id || ("p" + Date.now() + Math.random())), name: name, mime: mime, blob: blob };
+  }
+
+  function normalizeDayRecord(raw, allowBlob) {
+    if (!raw || typeof raw !== "object") return null;
+    var date = typeof raw.date === "string" ? raw.date : "";
+    if (!parseYmd(date)) return null;
+    var photosIn = Array.isArray(raw.photos) ? raw.photos.slice(0, MAX_PHOTOS) : [];
+    var photos = [];
+    photosIn.forEach(function (p) {
+      var n = normalizePhoto(p, allowBlob);
+      if (n) photos.push(n);
+    });
+    return {
+      date: date,
+      text: truncate(raw.text, MAX_TEXT),
+      checkedIn: raw.checkedIn === true,
+      rest: raw.rest === true,
+      photos: photos,
+      updatedAt: typeof raw.updatedAt === "number" ? raw.updatedAt : Date.now()
+    };
+  }
+
+  function normalizeSummaryRecord(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    var month = typeof raw.month === "string" ? raw.month : "";
+    if (!parseYm(month)) return null;
+    var origin = raw.origin === "auto-review-non-ai" || raw.origin === "edited" ? raw.origin : "";
+    return {
+      month: month,
+      title: truncate(raw.title, MAX_TITLE),
+      body: truncate(raw.body, MAX_TEXT),
+      origin: origin,
+      updatedAt: typeof raw.updatedAt === "number" ? raw.updatedAt : Date.now()
+    };
+  }
+
+  function dataUrlToBlob(data, mime) {
+    try {
+      var m = /^data:([^;]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(data);
+      var b64, typ;
+      if (m) { typ = m[1]; b64 = m[2]; }
+      else if (/^[A-Za-z0-9+/=\s]+$/.test(data)) { typ = mime; b64 = data; }
+      else return null;
+      var bin = atob(b64.replace(/\s/g, ""));
+      var len = bin.length;
+      if (len > MAX_COMPRESSED * 2) return null;
+      var arr = new Uint8Array(len);
+      for (var i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+      return new Blob([arr], { type: typ || mime || "application/octet-stream" });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () { resolve(String(fr.result || "")); };
+      fr.onerror = function () { reject(new Error("读取照片失败")); };
+      fr.readAsDataURL(blob);
+    });
+  }
+
+  function monthGrid(y, m) {
+    var first = new Date(y, m - 1, 1);
+    var start = first.getDay(); /* Sunday = 0 */
+    var daysIn = new Date(y, m, 0).getDate();
+    var cells = [];
+    var i;
+    for (i = 0; i < start; i++) cells.push(0);
+    for (i = 1; i <= daysIn; i++) cells.push(i);
+    while (cells.length % 7 !== 0) cells.push(0);
+    return cells;
+  }
+
+  function renderGrid() {
+    revokeList(gridUrls);
+    var grid = $("cal-grid");
+    while (grid.firstChild) grid.removeChild(grid.firstChild);
+    DOW.forEach(function (name) {
+      var el = document.createElement("div");
+      el.className = "dow";
+      el.textContent = name;
+      grid.appendChild(el);
+    });
+    var today = todayDate();
+    monthGrid(viewYear, viewMonth).forEach(function (d) {
+      if (!d) {
+        var empty = document.createElement("div");
+        empty.className = "cell empty";
+        grid.appendChild(empty);
+        return;
+      }
+      var date = ymd(viewYear, viewMonth, d);
+      var rec = days[date];
+      var cell = document.createElement("div");
+      cell.className = "cell";
+      cell.setAttribute("role", "button");
+      cell.tabIndex = 0;
+      if (rec && rec.rest) cell.classList.add("rest");
+      if (date === selectedDate) cell.classList.add("selected");
+      if (date === today) cell.classList.add("today");
+      cell.setAttribute("data-date", date);
+      cell.setAttribute("aria-label", date + (rec && rec.checkedIn ? " 已打卡" : "") + (rec && rec.rest ? " 休息日" : "") + "，点击选择这一天");
+      var num = document.createElement("span");
+      num.className = "num";
+      num.appendChild(document.createTextNode(String(d)));
+      if (rec && rec.checkedIn) {
+        var dot = document.createElement("span");
+        dot.className = "check-dot";
+        dot.title = "已打卡";
+        num.appendChild(dot);
+      }
+      cell.appendChild(num);
+      if (rec && rec.photos && rec.photos[0] && rec.photos[0].blob) {
+        var open = document.createElement("button");
+        open.type = "button";
+        open.className = "thumb-btn";
+        open.setAttribute("aria-label", "放大查看 " + date + " 的已保存照片");
+        var img = document.createElement("img");
+        img.className = "thumb";
+        img.alt = "";
+        img.src = blobUrl(rec.photos[0].blob, gridUrls);
+        open.appendChild(img);
+        open.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (lightbox.open || lightbox.animating) return;
+          var snap = captureThumbSource(img, date, 0, "grid");
+          if (selectedDate !== date) {
+            selectDate(date);
+            var again = findReturnTarget(date, 0, "grid");
+            if (again) snap.rect = copyRect(again.getBoundingClientRect());
+          }
+          openLightbox(date, 0, snap);
+        });
+        cell.appendChild(open);
+      }
+      if (rec && rec.text) {
+        var snip = document.createElement("span");
+        snip.className = "snip";
+        snip.textContent = rec.text;
+        cell.appendChild(snip);
+      }
+      cell.addEventListener("click", function () { selectDate(date); });
+      cell.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          selectDate(date);
+        }
+      });
+      grid.appendChild(cell);
+    });
+  }
+
+  function renderMonthHead() {
+    $("month-title").textContent = MONTHS_EN[viewMonth - 1];
+    $("month-sub").textContent = viewYear + " · 生活手帐月历";
+    $("cal-grid").setAttribute("aria-label", viewYear + "年" + viewMonth + "月月历");
+  }
+
+  function weekdayLabel(date) {
+    var p = parseYmd(date);
+    var dt = new Date(p.y, p.m - 1, p.d);
+    return WEEKDAY_CN[dt.getDay()];
+  }
+
+  function updateDiaryMeta() {
+    var rec = getDay(selectedDate);
+    var p = parseYmd(selectedDate);
+    $("diary-heading").textContent = p.m + "月" + p.d + "日 · 周" + weekdayLabel(selectedDate);
+    $("tag-check").textContent = rec.checkedIn ? "已打卡" : "未打卡";
+    $("tag-rest").textContent = rec.rest ? "休息日" : "非休息日";
+    $("btn-checkin").textContent = rec.checkedIn ? "取消打卡" : "打卡";
+    $("btn-toggle-rest").textContent = rec.rest ? "取消休息日" : "标记休息日";
+  }
+
+  function renderPhotos() {
+    revokeList(editorUrls);
+    var row = $("photo-row");
+    while (row.firstChild) row.removeChild(row.firstChild);
+    var rec = getDay(selectedDate);
+    (rec.photos || []).forEach(function (p, idx) {
+      var wrap = document.createElement("div");
+      wrap.className = "photo-item";
+      var open = document.createElement("button");
+      open.type = "button";
+      open.className = "photo-open";
+      open.setAttribute("aria-label", "放大查看已保存照片：" + (p.name || "照片"));
+      var img = document.createElement("img");
+      img.className = "thumb-edit";
+      img.alt = "";
+      img.src = p.blob ? blobUrl(p.blob, editorUrls) : "";
+      open.appendChild(img);
+      open.addEventListener("click", function () {
+        if (lightbox.open || lightbox.animating) return;
+        openLightbox(selectedDate, idx, captureThumbSource(img, selectedDate, idx, "editor"));
+      });
+      var rm = document.createElement("button");
+      rm.type = "button";
+      rm.className = "photo-remove";
+      rm.setAttribute("aria-label", "移除这张照片");
+      rm.textContent = "×";
+      rm.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        removePhoto(idx);
+      });
+      wrap.appendChild(open);
+      wrap.appendChild(rm);
+      row.appendChild(wrap);
+    });
+  }
+
+  function fillEditor() {
+    var rec = getDay(selectedDate);
+    $("diary-text").value = rec.text || "";
+    updateDiaryMeta();
+    renderPhotos();
+  }
+
+  function selectDate(date) {
+    if (photoBusy > 0 && date !== selectedDate) {
+      setBanner("仍有照片正在处理，处理完成会加到原来的日期，不会跟到新选中的一天。", false);
+    }
+    selectedDate = date;
+    var p = parseYmd(date);
+    if (p.y !== viewYear || p.m !== viewMonth) {
+      viewYear = p.y;
+      viewMonth = p.m;
+      renderMonthHead();
+    }
+    fillEditor();
+    renderGrid();
+  }
+
+  function shiftMonth(delta) {
+    if (playback.active) stopPlayback();
+    var m = viewMonth + delta;
+    var y = viewYear;
+    if (m < 1) { m = 12; y -= 1; }
+    if (m > 12) { m = 1; y += 1; }
+    viewYear = y;
+    viewMonth = m;
+    var p = parseYmd(selectedDate);
+    var dim = new Date(y, m, 0).getDate();
+    var d = p && p.y === y && p.m === m ? p.d : Math.min(p ? p.d : 1, dim);
+    selectedDate = ymd(y, m, d);
+    renderMonthHead();
+    fillEditor();
+    renderGrid();
+    renderSummaryEditor();
+    renderStats();
+  }
+
+  function goToday() {
+    if (playback.active) stopPlayback();
+    var t = todayDate();
+    var p = parseYmd(t);
+    viewYear = p.y;
+    viewMonth = p.m;
+    selectedDate = t;
+    renderMonthHead();
+    fillEditor();
+    renderGrid();
+    renderSummaryEditor();
+    renderStats();
+    $("diary-text").focus();
+    showPanel("cal");
+  }
+
+  function monthStats(y, m) {
+    var dim = new Date(y, m, 0).getDate();
+    var written = 0, checked = 0, rest = 0, photos = 0;
+    for (var d = 1; d <= dim; d++) {
+      var rec = days[ymd(y, m, d)];
+      if (!rec) continue;
+      if ((rec.text && rec.text.trim()) || (rec.photos && rec.photos.length)) written += 1;
+      else if (rec.checkedIn) written += 0;
+      if (rec.checkedIn) checked += 1;
+      if (rec.rest) rest += 1;
+      if (rec.photos) photos += rec.photos.length;
+      if (!((rec.text && rec.text.trim()) || (rec.photos && rec.photos.length)) && rec.checkedIn) {
+        /* still a recorded day if checked in only */
+      }
+    }
+    var recorded = 0;
+    for (d = 1; d <= dim; d++) {
+      if (dayHasContent(days[ymd(y, m, d)])) recorded += 1;
+    }
+    return { recorded: recorded, checked: checked, rest: rest, photos: photos, dim: dim };
+  }
+
+
+  var REVIEW_EXCERPT = 80;
+  var REVIEW_MARK = "根据记录自动整理（非AI）";
+
+  function excerptText(text) {
+    var raw = String(text || "").replace(/^\s+|\s+$/g, "").replace(/\s+/g, " ");
+    if (!raw) return "";
+    var chars = Array.from(raw);
+    var n = chars.length;
+    if (n <= REVIEW_EXCERPT) return raw;
+    var cut = chars.slice(0, REVIEW_EXCERPT).join("");
+    var marks = ["。", "！", "？", "；", ".", "!", "?", "…"];
+    var best = -1;
+    var minKeep = Math.max(0, REVIEW_EXCERPT - 20);
+    for (var i = 0; i < marks.length; i++) {
+      var at = cut.lastIndexOf(marks[i]);
+      if (at >= minKeep) best = Math.max(best, at + marks[i].length);
+    }
+    if (best >= 8) cut = cut.slice(0, best);
+    return cut + "……（摘录，原文共 " + n + " 字）";
+  }
+  function dayReviewLine(rec) {
+    var p = rec && rec.date ? parseYmd(rec.date) : null;
+    var head = p ? (p.m + "月" + p.d + "日") : "某日";
+    var ex = excerptText(rec && rec.text);
+    var marks = [];
+    if (rec && rec.checkedIn) marks.push("已打卡");
+    if (rec && rec.rest) marks.push("休息日");
+    var pc = rec && rec.photos ? rec.photos.length : 0;
+    if (pc) marks.push("照片 " + pc + " 张");
+    if (!ex) {
+      if (pc && !rec.checkedIn && !rec.rest) return head + "：这一天只有照片 " + pc + " 张，没有文字。";
+      if (rec && rec.checkedIn && !pc && !rec.rest) return head + "：已打卡。这一天没有文字。";
+      if (rec && rec.rest && !pc && !rec.checkedIn) return head + "：休息日。这一天没有文字。";
+      if (marks.length) return head + "：" + marks.join("，") + "。这一天没有文字。";
+      return head + "：这一天没有文字。";
+    }
+    if (marks.length) return head + "：" + ex + "（" + marks.join("，") + "）";
+    return head + "：" + ex;
+  }
+  function buildMonthReview(y, m) {
+    var dim = new Date(y, m, 0).getDate();
+    var lines = [];
+    var any = false;
+    for (var d = 1; d <= dim; d++) {
+      var date = ymd(y, m, d);
+      var rec = days[date];
+      if (!dayHasContent(rec)) continue;
+      any = true;
+      lines.push(dayReviewLine({
+        date: date,
+        text: rec.text || "",
+        checkedIn: !!rec.checkedIn,
+        rest: !!rec.rest,
+        photos: rec.photos || []
+      }));
+    }
+    var title = y + "年" + m + "月回顾";
+    var stats = monthStats(y, m);
+    var body;
+    if (!any) {
+      body = REVIEW_MARK + "\n\n这个月还没有可整理的记录（没有文字、照片、打卡或休息日）。不会编造内容。";
+    } else {
+      body = REVIEW_MARK +
+        "\n\n本月统计：已记录 " + stats.recorded + " / " + stats.dim +
+        " 天，打卡 " + stats.checked + " 天，休息日 " + stats.rest +
+        " 天，照片 " + stats.photos + " 张。以上数字按记录直接计数。\n\n按日期摘录（过长文字已截断并标明）：\n" +
+        lines.join("\n");
+    }
+    return {
+      title: truncate(title, MAX_TITLE),
+      body: truncate(body, MAX_TEXT),
+      empty: !any,
+      stats: stats
+    };
+  }
+  function monthHasSavedReview(y, m) {
+    var rec = summaries[monthKey(y, m)];
+    return !!(rec && ((rec.title && rec.title.trim()) || (rec.body && rec.body.trim())));
+  }
+  function openReviewPreview() {
+    if (playback.active) stopPlayback();
+    var gen = buildMonthReview(viewYear, viewMonth);
+    gen.month = monthKey(viewYear, viewMonth);
+    gen.lastFocus = document.activeElement;
+    pendingReview = gen;
+    var existed = monthHasSavedReview(viewYear, viewMonth);
+    $("review-msg").textContent = existed
+      ? "下面是根据本月真实记录自动整理的回顾（非AI），不推断情绪或主题。当前总结框里已有内容，只有点「写入本机总结」才会覆盖；取消则保持原文。"
+      : "下面是根据本月真实记录自动整理的回顾（非AI），不推断情绪或主题。确认后会写入本机总结框，之后仍可再改。";
+    $("review-preview").textContent = gen.title + "\n\n" + gen.body;
+    $("review-apply").textContent = existed ? "确认覆盖并写入" : "写入本机总结";
+    $("review-modal").classList.add("show");
+    $("review-cancel").focus();
+  }
+  function closeReviewPreview() {
+    var target = pendingReview && pendingReview.lastFocus;
+    $("review-modal").classList.remove("show");
+    pendingReview = null;
+    if (target && typeof target.focus === "function") { try { target.focus(); } catch (e) {} }
+  }
+  function applyReviewPreview() {
+    var gen = pendingReview;
+    if (!gen) { closeReviewPreview(); return; }
+    if (gen.month !== monthKey(viewYear, viewMonth)) {
+      closeReviewPreview();
+      setBanner("月份已改变，请在当前月份重新预览回顾；没有覆盖任何文稿。", false);
+      return;
+    }
+    closeReviewPreview();
+    if (sumTimer) { clearTimeout(sumTimer); sumTimer = null; }
+    var rec = getSummary(gen.month);
+    rec.title = gen.title;
+    rec.body = gen.body;
+    rec.origin = "auto-review-non-ai";
+    rec.updatedAt = Date.now();
+    $("sum-title").value = rec.title;
+    $("sum-body").value = rec.body;
+    afterSummaryChange(rec);
+    setBanner(gen.empty
+      ? "已填入本月自动回顾（非AI）并尝试保存：这个月没有可整理的记录，文稿已如实说明。请查看保存状态。"
+      : "已填入根据记录自动整理的回顾（非AI）并尝试保存。可再修改，也会进入备份，请查看保存状态。", false);
+    showPanel("sum");
+  }
+  function closePlayReviewChoice() {
+    $("play-review-modal").classList.remove("show");
+  }
+  function requestPlayMonth() {
+    if (playback.busy) return;
+    if (playback.active) { if (playback.ended) replayPlayback(); return; }
+    if (monthHasSavedReview(viewYear, viewMonth)) {
+      startPlayback({ useTemporaryReview: false });
+      return;
+    }
+    $("play-review-modal").classList.add("show");
+    $("play-review-temp").focus();
+  }
+
+  function renderStats() {
+    var s = monthStats(viewYear, viewMonth);
+    $("month-stats").textContent =
+      "本月统计（按你的记录直接计数，不是 AI 总结）：已记录 " + s.recorded +
+      " / " + s.dim + " 天，打卡 " + s.checked + " 天，休息日 " + s.rest +
+      " 天，照片 " + s.photos + " 张。";
+    $("sum-sub").textContent = MONTHS_EN[viewMonth - 1].toUpperCase() + " · MONTH IN REVIEW · 统计与自动回顾（非AI）";
+  }
+
+  function renderSummaryEditor() {
+    var rec = getSummary(monthKey(viewYear, viewMonth));
+    $("sum-title").value = rec.title || "";
+    $("sum-body").value = rec.body || "";
+  }
+
+  function showPanel(which) {
+    var cal = which === "cal";
+    $("tab-cal").setAttribute("aria-selected", cal ? "true" : "false");
+    $("tab-sum").setAttribute("aria-selected", cal ? "false" : "true");
+    $("panel-cal").classList.toggle("active", cal);
+    $("panel-sum").classList.toggle("active", !cal);
+  }
+
+  function toggleCheckin() {
+    var rec = getDay(selectedDate);
+    rec.checkedIn = !rec.checkedIn;
+    rec.updatedAt = Date.now();
+    afterDayChange(rec);
+    fillEditor();
+  }
+
+  function toggleRest() {
+    var rec = getDay(selectedDate);
+    rec.rest = !rec.rest;
+    rec.updatedAt = Date.now();
+    afterDayChange(rec);
+    fillEditor();
+  }
+
+  function onTextInput() {
+    var rec = getDay(selectedDate);
+    rec.text = truncate($("diary-text").value, MAX_TEXT);
+    rec.updatedAt = Date.now();
+    if (textTimer) clearTimeout(textTimer);
+    textTimer = setTimeout(function () { afterDayChange(rec); }, 280);
+    renderGrid();
+  }
+
+  function onSumInput() {
+    var rec = getSummary(monthKey(viewYear, viewMonth));
+    rec.title = truncate($("sum-title").value, MAX_TITLE);
+    rec.body = truncate($("sum-body").value, MAX_TEXT);
+    rec.origin = "edited";
+    rec.updatedAt = Date.now();
+    if (sumTimer) clearTimeout(sumTimer);
+    sumTimer = setTimeout(function () { afterSummaryChange(rec); }, 280);
+  }
+
+  function removePhoto(idx) {
+    var rec = getDay(selectedDate);
+    rec.photos.splice(idx, 1);
+    rec.updatedAt = Date.now();
+    afterDayChange(rec);
+    renderPhotos();
+    if (lightbox.open && lightbox.date === selectedDate) renderLightbox();
+  }
+
+  function compressImage(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file) return reject(new Error("没有选择文件"));
+      var type = (file.type || "").toLowerCase();
+      if (type === "image/svg+xml" || /\.svg$/i.test(file.name || "")) {
+        return reject(new Error("不支持 SVG 图片"));
+      }
+      if (file.size > MAX_ORIGINAL) {
+        return reject(new Error("照片超过 8MB：" + (file.name || "未命名")));
+      }
+      if (!type || (!ALLOWED_MIME[type] && type !== "image/heic" && type !== "image/heif")) {
+        if (!type.startsWith("image/")) return reject(new Error("只接受图片文件"));
+      }
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var w = img.naturalWidth || img.width;
+          var h = img.naturalHeight || img.height;
+          if (!w || !h) throw new Error("无法读取图片尺寸");
+          var scale = Math.min(1, MAX_EDGE / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * scale));
+          var ch = Math.max(1, Math.round(h * scale));
+          var canvas = document.createElement("canvas");
+          canvas.width = cw;
+          canvas.height = ch;
+          var ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, cw, ch);
+          URL.revokeObjectURL(url);
+          var quality = 0.82;
+          var tryOut = function () {
+            canvas.toBlob(function (blob) {
+              if (!blob) {
+                reject(new Error("压缩失败，当前浏览器可能无法处理这张照片（例如 HEIC）"));
+                return;
+              }
+              if (blob.size > MAX_COMPRESSED && quality > 0.55) {
+                quality -= 0.1;
+                tryOut();
+                return;
+              }
+              if (blob.size > MAX_COMPRESSED * 1.25) {
+                reject(new Error("压缩后仍然过大，请换一张更小的照片"));
+                return;
+              }
+              resolve({ blob: blob, mime: "image/jpeg", name: (file.name || "photo").replace(/\.[^.]+$/, "") + ".jpg" });
+            }, "image/jpeg", quality);
+          };
+          tryOut();
+        } catch (e) {
+          URL.revokeObjectURL(url);
+          reject(e);
+        }
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        reject(new Error("无法解码这张图片。若是 HEIC，请先转为 JPG/PNG，或换用支持的浏览器。"));
+      };
+      img.src = url;
+    });
+  }
+
+  function addPhotos(fileList) {
+    var files = Array.prototype.slice.call(fileList || []);
+    if (!files.length) {
+      setPhotoHint("没有读到所选照片，请重新选择一张图片。", true);
+      return;
+    }
+    var dateKey = selectedDate;
+    var rec = getDay(dateKey);
+    var room = MAX_PHOTOS - rec.photos.length;
+    if (room <= 0) {
+      setPhotoHint("这一天已经有 " + MAX_PHOTOS + " 张照片，请先移除再添加。", true);
+      setBanner("这一天已经有 " + MAX_PHOTOS + " 张照片，请先移除再添加。", true);
+      return;
+    }
+    if (files.length > room) {
+      setBanner("每天最多 " + MAX_PHOTOS + " 张，这次只会加入前 " + room + " 张。", false);
+      files = files.slice(0, room);
+    }
+    photoBusy += 1;
+    $("btn-add-photo").disabled = true;
+    $("photo-input").disabled = true;
+    setPhotoHint("正在处理 " + files.length + " 张照片（" + dateKey + "），完成前请稍候，不要关闭页面。处理结束前不会提前把未完成的图片当作已保存。", false);
+    var chain = Promise.resolve();
+    var errors = [];
+    var added = 0;
+    files.forEach(function (file) {
+      chain = chain.then(function () {
+        return compressImage(file).then(function (out) {
+          var target = getDay(dateKey);
+          if (target.photos.length >= MAX_PHOTOS) {
+            errors.push((file.name || "照片") + "未加入：已达到每天 6 张上限");
+            return;
+          }
+          target.photos.push({
+            id: "p" + Date.now() + "-" + Math.random().toString(16).slice(2),
+            name: out.name,
+            mime: out.mime,
+            blob: out.blob
+          });
+          added += 1;
+        }).catch(function (e) {
+          errors.push((file.name || "照片") + "：" + (e && e.message ? e.message : String(e)));
+        });
+      });
+    });
+    chain.then(function () {
+      photoBusy = Math.max(0, photoBusy - 1);
+      $("btn-add-photo").disabled = photoBusy > 0;
+      $("photo-input").disabled = photoBusy > 0;
+      var target = getDay(dateKey);
+      target.updatedAt = Date.now();
+      if (added) afterDayChange(target);
+      if (selectedDate === dateKey) renderPhotos();
+      if (errors.length && !added) {
+        setPhotoHint("照片未能加入：" + errors.join("；"), true);
+        setBanner("照片未能加入：" + errors.join("；"), true);
+      } else if (errors.length) {
+        setPhotoHint("加入 " + added + " 张，另有失败：" + errors.join("；") + (persistMode === "idb" ? " 成功的照片会尝试写入本机。" : " 当前不能写入本机数据库。"), true);
+        setBanner("部分照片未加入：" + errors.join("；"), true);
+      } else if (persistMode === "idb") {
+        setPhotoHint("已加入 " + added + " 张照片，并已尝试写入本机。若保存失败，顶部会提示。刷新后应仍能看到缩略图。", false);
+      } else {
+        setPhotoHint("已加入 " + added + " 张照片，但当前只在内存中，刷新后会丢失。", true);
+      }
+      if (selectedDate !== dateKey && added) {
+        setBanner("照片已加入 " + dateKey + "（不是当前正在看的日期）。保存结果见上方提示。", false);
+      }
+    });
+  }
+
+  function collectExport() {
+    var dayRows = Object.keys(days).sort().map(function (k) { return days[k]; }).filter(dayHasContent);
+    var sumRows = Object.keys(summaries).sort().map(function (k) { return summaries[k]; })
+      .filter(function (s) { return s.title || s.body; });
+    var jobs = dayRows.map(function (rec) {
+      return Promise.all((rec.photos || []).map(function (p) {
+        return blobToDataUrl(p.blob).then(function (data) {
+          return { id: p.id, name: p.name, mime: p.mime, data: data };
+        });
+      })).then(function (photos) {
+        return {
+          date: rec.date,
+          text: rec.text,
+          checkedIn: !!rec.checkedIn,
+          rest: !!rec.rest,
+          photos: photos,
+          updatedAt: rec.updatedAt
+        };
+      });
+    });
+    return Promise.all(jobs).then(function (outDays) {
+      return {
+        app: "ryan-life-calendar",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        days: outDays,
+        summaries: sumRows.map(function (s) {
+          return { month: s.month, title: s.title, body: s.body, origin: s.origin || "", updatedAt: s.updatedAt };
+        })
+      };
+    });
+  }
+
+  function backupFileName() {
+    var stamp = new Date();
+    return "life-calendar-backup-" + stamp.getFullYear() + pad(stamp.getMonth() + 1) + pad(stamp.getDate()) + ".json";
+  }
+  function isAppleTouch() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+  function fallbackDownload(blob, name) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    if (isAppleTouch()) {
+      setBanner("若没有出现下载，请查看新打开的标签，点分享并把备份存到「文件」。备份只在你的手机上，没有上传到本站。", false);
+      window.open(url, "_blank");
+    } else {
+      setBanner("已生成备份文件 " + name + "。请把它存到你能找到的位置。这不是云同步。", false);
+    }
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 4000);
+  }
+  function exportBackup() {
+    collectExport().then(function (payload) {
+      var json = JSON.stringify(payload);
+      var blob = new Blob([json], { type: "application/json;charset=utf-8" });
+      var name = backupFileName();
+      var file = new File([blob], name, { type: "application/json" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: name, text: "生活日历本机备份，请存到文件应用。不是云同步。" }).then(function () {
+          setBanner("已打开分享菜单。请把备份存到「文件」或其他你能找到的位置。这不是云同步。", false);
+        }).catch(function (e) {
+          if (e && e.name === "AbortError") return;
+          fallbackDownload(blob, name);
+        });
+        return;
+      }
+      fallbackDownload(blob, name);
+    }).catch(function (e) {
+      setBanner("导出失败：" + (e && e.message ? e.message : String(e)), true);
+    });
+  }
+
+  function looksLikeBackup(obj) {
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) return "不是有效的备份对象";
+    if (obj.kind === "month-text-for-summary") return "这是「供总结用的本月文字导出」，不是完整备份，不能用来恢复记录。请使用「导出全部备份」得到的 JSON";
+    if (obj.app && obj.app !== "ryan-life-calendar") return "这不是生活日历的备份文件";
+    if (obj.version && obj.version !== 1) return "尚不支持此备份版本（" + obj.version + "）";
+    if (obj.days && !Array.isArray(obj.days)) return "days 字段必须是数组";
+    if (obj.summaries && !Array.isArray(obj.summaries)) return "summaries 字段必须是数组";
+    if (!obj.days && !obj.summaries) return "备份里没有 days 或 summaries";
+    return "";
+  }
+
+  function parseBackup(text, byteLength) {
+    if (byteLength > MAX_IMPORT_BYTES) throw new Error("备份文件超过 40MB，已拒绝导入");
+    if (text.length > MAX_IMPORT_BYTES) throw new Error("备份文本过大，已拒绝导入");
+    var data;
+    try { data = JSON.parse(text); }
+    catch (e) { throw new Error("不是合法的 JSON 文件"); }
+    if (data && typeof data === "object") {
+      if (Object.prototype.hasOwnProperty.call(data, "__proto__") ||
+          Object.prototype.hasOwnProperty.call(data, "constructor") ||
+          Object.prototype.hasOwnProperty.call(data, "prototype")) {
+        throw new Error("备份包含非法键，已拒绝导入");
+      }
+    }
+    var err = looksLikeBackup(data);
+    if (err) throw new Error(err);
+    var daysIn = Array.isArray(data.days) ? data.days : [];
+    var sumsIn = Array.isArray(data.summaries) ? data.summaries : [];
+    if (daysIn.length > 4000 || sumsIn.length > 400) throw new Error("备份条目数量异常，已拒绝导入");
+    var outDays = [];
+    daysIn.forEach(function (row) {
+      if (!row || typeof row !== "object") return;
+      if (!safeKey(row.date)) return;
+      var rec = normalizeDayRecord(row, false);
+      if (rec) outDays.push(rec);
+    });
+    var outSums = [];
+    sumsIn.forEach(function (row) {
+      if (!row || typeof row !== "object") return;
+      if (!safeKey(row.month)) return;
+      var rec = normalizeSummaryRecord(row);
+      if (rec) outSums.push(rec);
+    });
+    if (!outDays.length && !outSums.length) throw new Error("备份里没有可恢复的有效记录");
+    return { days: outDays, summaries: outSums, exportedAt: typeof data.exportedAt === "string" ? data.exportedAt : "" };
+  }
+
+  function applyImport(payload, mode) {
+    var job = Promise.resolve();
+    if (mode === "replace") {
+      days = Object.create(null);
+      summaries = Object.create(null);
+      if (persistMode === "idb") job = clearIdb();
+    }
+    payload.days.forEach(function (rec) { days[rec.date] = rec; });
+    payload.summaries.forEach(function (rec) { summaries[rec.month] = rec; });
+    return job.then(function () {
+      var writes = [];
+      if (persistMode === "idb") {
+        payload.days.forEach(function (rec) { writes.push(persistDay(rec)); });
+        payload.summaries.forEach(function (rec) { writes.push(persistSummary(rec)); });
+      }
+      return Promise.all(writes);
+    }).then(function () {
+      fillEditor();
+      renderGrid();
+      renderSummaryEditor();
+      renderStats();
+      if (persistMode === "idb") {
+        setBanner("导入完成（" + (mode === "replace" ? "全部替换" : "合并，同日以导入为准") + "），并已尝试写入本机。", false);
+        rememberDaySave(true);
+      } else {
+        setBanner("导入已载入内存，但当前不能写入本机数据库，刷新后可能丢失。请尽快在可用环境中重新导出。", true);
+      }
+    });
+  }
+
+  function onImportFile(file) {
+    if (!file) return;
+    if (file.size > MAX_IMPORT_BYTES) {
+      setBanner("备份文件超过 40MB，已拒绝导入。", true);
+      return;
+    }
+    var name = (file.name || "").toLowerCase();
+    if (name && !name.endsWith(".json")) {
+      setBanner("请选择 .json 备份文件。", true);
+      return;
+    }
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        pendingImport = parseBackup(String(fr.result || ""), file.size);
+        $("import-msg").textContent = "读到 " + pendingImport.days.length + " 天记录、" +
+          pendingImport.summaries.length + " 篇月度总结" +
+          (pendingImport.exportedAt ? "（导出时间 " + pendingImport.exportedAt + "）" : "") +
+          "。请选择合并或全部替换。默认取消，不会静默覆盖。";
+        $("import-modal").classList.add("show");
+      } catch (e) {
+        pendingImport = null;
+        setBanner("导入校验失败：" + (e && e.message ? e.message : String(e)), true);
+      }
+    };
+    fr.onerror = function () { setBanner("读取备份文件失败。", true); };
+    fr.readAsText(file);
+  }
+
+  function closeImportModal() {
+    $("import-modal").classList.remove("show");
+    pendingImport = null;
+  }
+
+  function confirmImport(mode) {
+    var payload = pendingImport;
+    if (!payload) { closeImportModal(); return; }
+    closeImportModal();
+    applyImport(payload, mode).catch(function (e) {
+      setBanner("导入写入失败：" + (e && e.message ? e.message : String(e)) + "。未宣称已保存。", true);
+    });
+  }
+
+  function mountDataActions() {
+    var blocks = document.querySelectorAll("[data-data-actions]");
+    blocks.forEach(function (root) {
+      while (root.firstChild) root.removeChild(root.firstChild);
+      var exp = document.createElement("button");
+      exp.type = "button";
+      exp.className = "btn primary";
+      exp.textContent = "导出全部备份";
+      exp.addEventListener("click", exportBackup);
+      var lab = document.createElement("label");
+      lab.className = "btn ghost";
+      lab.style.textAlign = "center";
+      lab.textContent = "导入备份…";
+      var inp = document.createElement("input");
+      inp.type = "file";
+      inp.accept = "application/json,.json";
+      inp.className = "hidden-file";
+      inp.addEventListener("change", function () {
+        var f = inp.files && inp.files[0];
+        inp.value = "";
+        onImportFile(f);
+      });
+      lab.appendChild(inp);
+      root.appendChild(exp);
+      root.appendChild(lab);
+      var monthText = document.createElement("button");
+      monthText.type = "button";
+      monthText.className = "btn quiet";
+      monthText.textContent = "导出本月文字";
+      monthText.addEventListener("click", exportMonthText);
+      root.appendChild(monthText);
+    });
+  }
+
+  var LIGHTBOX_MS = 260;
+  var LIGHTBOX_SWIPE = 50;
+  var LIGHTBOX_SLOP = 12;
+
+  function reduceMotion() {
+    try {
+      return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    } catch (e) {
+      return false;
+    }
+  }
+  function canFlip() {
+    return !reduceMotion() && !!(document.body && document.body.animate);
+  }
+  function copyRect(r) {
+    return { left: r.left, top: r.top, width: r.width, height: r.height, right: r.right, bottom: r.bottom };
+  }
+  function rectOk(r) {
+    return !!(r && r.width >= 2 && r.height >= 2);
+  }
+  function captureThumbSource(el, date, index, origin) {
+    var target = el;
+    if (el && el.tagName !== "IMG") target = el.querySelector("img") || el;
+    var rect = target && target.getBoundingClientRect ? copyRect(target.getBoundingClientRect()) : null;
+    var radius = "3px";
+    try {
+      if (target) radius = window.getComputedStyle(target).borderRadius || radius;
+    } catch (e) {}
+    return { date: date, index: index, origin: origin, rect: rectOk(rect) ? rect : null, radius: radius };
+  }
+  function findReturnTarget(date, index, origin) {
+    if (selectedDate === date) {
+      var edits = $("photo-row").querySelectorAll("img.thumb-edit");
+      if (edits[index] && rectOk(edits[index].getBoundingClientRect())) return edits[index];
+    }
+    var cell = $("cal-grid").querySelector('.cell[data-date="' + date + '"]');
+    if (cell) {
+      var thumb = cell.querySelector("img.thumb");
+      if (thumb && rectOk(thumb.getBoundingClientRect())) return thumb;
+      var frame = cell.querySelector(".thumb-btn") || cell;
+      if (frame && rectOk(frame.getBoundingClientRect())) return frame;
+    }
+    if (origin === "editor" && selectedDate === date) {
+      var first = $("photo-row").querySelector("img.thumb-edit");
+      if (first && rectOk(first.getBoundingClientRect())) return first;
+    }
+    return null;
+  }
+  function clearSourceHide() {
+    var olds = document.querySelectorAll(".is-lightbox-source");
+    for (var i = 0; i < olds.length; i++) olds[i].classList.remove("is-lightbox-source");
+  }
+  function hideReturnTarget(date, index, origin) {
+    clearSourceHide();
+    var el = findReturnTarget(date, index, origin);
+    if (el) el.classList.add("is-lightbox-source");
+    return el;
+  }
+  function cancelFlipAnims() {
+    var list = lightbox.flipAnims || [];
+    lightbox.flipAnims = [];
+    list.forEach(function (anim) {
+      try { anim.cancel(); } catch (e) {}
+    });
+  }
+  function whenAnimDone(anim, cb) {
+    var done = false;
+    var once = function () {
+      if (done) return;
+      done = true;
+      cb();
+    };
+    if (!anim) {
+      once();
+      return;
+    }
+    if (anim.finished && typeof anim.finished.then === "function") {
+      anim.finished.then(once, once);
+    } else {
+      anim.onfinish = once;
+      anim.oncancel = once;
+    }
+    setTimeout(once, LIGHTBOX_MS + 160);
+  }
+  function hideFlyer() {
+    var flyer = $("lightbox-flyer");
+    if (!flyer) return;
+    flyer.classList.remove("show");
+    flyer.removeAttribute("src");
+    flyer.style.transform = "";
+    flyer.style.left = "0px";
+    flyer.style.top = "0px";
+    flyer.style.width = "1px";
+    flyer.style.height = "1px";
+    flyer.hidden = true;
+  }
+  function placeFlyer(rect, radius) {
+    var flyer = $("lightbox-flyer");
+    flyer.hidden = false;
+    flyer.classList.add("show");
+    flyer.style.left = rect.left + "px";
+    flyer.style.top = rect.top + "px";
+    flyer.style.width = Math.max(1, rect.width) + "px";
+    flyer.style.height = Math.max(1, rect.height) + "px";
+    flyer.style.borderRadius = radius || "3px";
+    flyer.style.transform = "none";
+    flyer.style.objectFit = "cover";
+    return flyer;
+  }
+  function flipAnimate(flyer, fromRect, toRect, fromRadius, toRadius) {
+    flyer.style.left = toRect.left + "px";
+    flyer.style.top = toRect.top + "px";
+    flyer.style.width = Math.max(1, toRect.width) + "px";
+    flyer.style.height = Math.max(1, toRect.height) + "px";
+    flyer.style.transformOrigin = "top left";
+    var sx = fromRect.width / Math.max(1, toRect.width);
+    var sy = fromRect.height / Math.max(1, toRect.height);
+    var dx = fromRect.left - toRect.left;
+    var dy = fromRect.top - toRect.top;
+    var anim = flyer.animate([
+      { transform: "translate(" + dx + "px, " + dy + "px) scale(" + sx + ", " + sy + ")", borderRadius: fromRadius || "3px" },
+      { transform: "translate(0px, 0px) scale(1, 1)", borderRadius: toRadius || "0px" }
+    ], { duration: LIGHTBOX_MS, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "forwards" });
+    lightbox.flipAnims.push(anim);
+    return anim;
+  }
+  function fadeBackdrop(box, opening) {
+    var from = opening ? "rgba(12, 24, 36, 0)" : "rgba(12, 24, 36, 0.86)";
+    var to = opening ? "rgba(12, 24, 36, 0.86)" : "rgba(12, 24, 36, 0)";
+    var anim = box.animate(
+      [{ backgroundColor: from }, { backgroundColor: to }],
+      { duration: LIGHTBOX_MS, easing: opening ? "ease-out" : "ease-in", fill: "forwards" }
+    );
+    lightbox.flipAnims.push(anim);
+    return anim;
+  }
+  function whenImgReady(img, cb) {
+    var done = false;
+    var once = function () {
+      if (done) return;
+      done = true;
+      cb();
+    };
+    if (img.complete && img.naturalWidth) {
+      if (img.decode) {
+        img.decode().then(once, once);
+      } else {
+        once();
+      }
+      return;
+    }
+    var on = function () {
+      img.removeEventListener("load", on);
+      img.removeEventListener("error", on);
+      if (img.decode && img.naturalWidth) img.decode().then(once, once);
+      else once();
+    };
+    img.addEventListener("load", on);
+    img.addEventListener("error", on);
+    setTimeout(once, 420);
+  }
+  function scheduleSuppressClick() {
+    lightbox.suppressClick = true;
+    setTimeout(function () {
+      lightbox.suppressClick = false;
+    }, 400);
+  }
+  function isLightboxControl(target) {
+    if (!target || !target.closest) return false;
+    return !!(target.closest("#lightbox-close") || target.closest("#lightbox-prev") || target.closest("#lightbox-next"));
+  }
+
+  function bindLightbox() {
+    $("lightbox-close").addEventListener("click", function (e) {
+      e.stopPropagation();
+      closeLightbox();
+    });
+    $("lightbox-prev").addEventListener("click", function (e) {
+      e.stopPropagation();
+      lightboxStep(-1);
+    });
+    $("lightbox-next").addEventListener("click", function (e) {
+      e.stopPropagation();
+      lightboxStep(1);
+    });
+    /* Backdrop fills the screen via .lightbox-ui; only img/controls are excluded from backdrop-close, and img itself closes. */
+    $("lightbox").addEventListener("click", function (e) {
+      if (!lightbox.open) return;
+      if (lightbox.animating || lightbox.suppressClick) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (isLightboxControl(e.target)) return;
+      closeLightbox();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (playback.active && e.key === "Escape") { e.preventDefault(); stopPlayback(); return; }
+      if (e.key === "Escape" && $("review-modal").classList.contains("show")) { e.preventDefault(); closeReviewPreview(); return; }
+      if (e.key === "Escape" && $("play-review-modal").classList.contains("show")) { e.preventDefault(); closePlayReviewChoice(); return; }
+      if (!lightbox.open || lightbox.animating) return;
+      if (e.key === "Escape") { e.preventDefault(); closeLightbox(); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); lightboxStep(-1); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); lightboxStep(1); }
+      else if (e.key === "Tab") {
+        var focusable = lightboxFocusable();
+        if (!focusable.length) return;
+        var i = focusable.indexOf(document.activeElement);
+        if (e.shiftKey) i = i <= 0 ? focusable.length - 1 : i - 1;
+        else i = i === -1 || i === focusable.length - 1 ? 0 : i + 1;
+        e.preventDefault();
+        focusable[i].focus();
+      }
+    });
+    var box = $("lightbox");
+    box.addEventListener("touchstart", function (e) {
+      lightbox.touchMaxFingers = Math.max(lightbox.touchMaxFingers || 0, e.touches.length);
+      if (e.touches.length >= 2) {
+        lightbox.ignoreSwipe = true;
+        lightbox.touchActive = false;
+        lightbox.suppressClick = true;
+        return;
+      }
+      if (e.touches.length === 1) {
+        lightbox.ignoreSwipe = false;
+        lightbox.touchActive = true;
+        lightbox.touchMoved = false;
+        lightbox.touchX = e.touches[0].clientX;
+        lightbox.touchY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+    box.addEventListener("touchmove", function (e) {
+      if (e.touches.length >= 2) {
+        lightbox.ignoreSwipe = true;
+        lightbox.suppressClick = true;
+        lightbox.touchMaxFingers = Math.max(lightbox.touchMaxFingers || 0, e.touches.length);
+        return;
+      }
+      if (!lightbox.touchActive) return;
+      var t = e.touches[0];
+      var dx = t.clientX - lightbox.touchX;
+      var dy = t.clientY - lightbox.touchY;
+      if (Math.abs(dx) >= LIGHTBOX_SLOP || Math.abs(dy) >= LIGHTBOX_SLOP) {
+        lightbox.touchMoved = true;
+        lightbox.suppressClick = true;
+      }
+    }, { passive: true });
+    box.addEventListener("touchend", function (e) {
+      var wasActive = lightbox.touchActive;
+      var ignore = lightbox.ignoreSwipe;
+      var sx = lightbox.touchX;
+      var sy = lightbox.touchY;
+      var fingers = lightbox.touchMaxFingers;
+      if (e.touches.length === 0) {
+        lightbox.touchActive = false;
+        lightbox.ignoreSwipe = false;
+        lightbox.touchMaxFingers = 0;
+        if (ignore || fingers >= 2 || lightbox.touchMoved) scheduleSuppressClick();
+      }
+      if (ignore || !wasActive || lightbox.animating) return;
+      var t = e.changedTouches[0];
+      if (!t) return;
+      var dx = t.clientX - sx;
+      var dy = t.clientY - sy;
+      if (Math.abs(dx) >= LIGHTBOX_SWIPE && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        scheduleSuppressClick();
+        lightboxStep(dx < 0 ? 1 : -1);
+      }
+    }, { passive: true });
+    box.addEventListener("touchcancel", function () {
+      lightbox.touchActive = false;
+      lightbox.ignoreSwipe = false;
+      lightbox.touchMaxFingers = 0;
+      scheduleSuppressClick();
+    }, { passive: true });
+  }
+  function lightboxFocusable() {
+    return [$("lightbox-close"), $("lightbox-prev"), $("lightbox-next")].filter(function (el) {
+      return el && !el.disabled && el.offsetParent !== null;
+    });
+  }
+  function openLightbox(date, index, source) {
+    if (lightbox.animating) return;
+    var rec = days[date];
+    var photos = rec && rec.photos ? rec.photos.filter(function (p) { return p && p.blob; }) : [];
+    if (!photos.length) return;
+    var i = index || 0;
+    if (i < 0) i = 0;
+    if (i >= photos.length) i = photos.length - 1;
+    if (lightbox.open) {
+      lightbox.date = date;
+      lightbox.index = i;
+      if (source) lightbox.source = source;
+      renderLightbox();
+      return;
+    }
+    lightbox.lastFocus = document.activeElement;
+    lightbox.prevOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    lightbox.open = true;
+    lightbox.date = date;
+    lightbox.index = i;
+    lightbox.source = source || null;
+    var box = $("lightbox");
+    var img = $("lightbox-img");
+    box.hidden = false;
+    box.classList.add("show");
+    renderLightbox();
+    var useFlip = canFlip() && lightbox.source && rectOk(lightbox.source.rect);
+    if (!useFlip) {
+      hideFlyer();
+      box.classList.remove("is-flipping");
+      img.classList.remove("is-ghost");
+      $("lightbox-close").focus();
+      return;
+    }
+    lightbox.animating = true;
+    box.classList.add("is-flipping");
+    img.classList.add("is-ghost");
+    hideReturnTarget(date, i, lightbox.source.origin);
+    whenImgReady(img, function () {
+      if (!lightbox.open) {
+        lightbox.animating = false;
+        return;
+      }
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          if (!lightbox.open) {
+            lightbox.animating = false;
+            return;
+          }
+          var dest = copyRect(img.getBoundingClientRect());
+          if (!rectOk(dest)) {
+            finishOpenFlip();
+            return;
+          }
+          cancelFlipAnims();
+          var flyer = placeFlyer(lightbox.source.rect, lightbox.source.radius);
+          flyer.src = img.currentSrc || img.src;
+          fadeBackdrop(box, true);
+          var anim = flipAnimate(flyer, lightbox.source.rect, dest, lightbox.source.radius, "0px");
+          whenAnimDone(anim, finishOpenFlip);
+        });
+      });
+    });
+  }
+  function finishOpenFlip() {
+    var img = $("lightbox-img");
+    var box = $("lightbox");
+    hideFlyer();
+    box.classList.remove("is-flipping");
+    img.classList.remove("is-ghost");
+    cancelFlipAnims();
+    box.style.backgroundColor = "";
+    clearSourceHide();
+    lightbox.animating = false;
+    if (lightbox.open) $("lightbox-close").focus();
+  }
+  function renderLightbox() {
+    revokeList(lightboxUrls);
+    var rec = days[lightbox.date];
+    var photos = rec && rec.photos ? rec.photos.filter(function (p) { return p && p.blob; }) : [];
+    if (!photos.length) { closeLightbox(true); return; }
+    if (lightbox.index < 0) lightbox.index = photos.length - 1;
+    if (lightbox.index >= photos.length) lightbox.index = 0;
+    var photo = photos[lightbox.index];
+    var img = $("lightbox-img");
+    img.src = blobUrl(photo.blob, lightboxUrls);
+    img.alt = (photo.name || "已保存照片") + "，再点图片可收回";
+    var p = parseYmd(lightbox.date);
+    var label = (p ? (p.m + "月" + p.d + "日") : lightbox.date);
+    $("lightbox-caption").textContent = label + " · " + (lightbox.index + 1) + " / " + photos.length +
+      " · 点图片可收回方格 · 正在查看本机已保存的压缩图（保存时约最长边 1600 像素、目标约 800KB，不是相机原图）";
+    var many = photos.length > 1;
+    $("lightbox-prev").disabled = !many;
+    $("lightbox-next").disabled = !many;
+    $("lightbox-prev").style.visibility = many ? "visible" : "hidden";
+    $("lightbox-next").style.visibility = many ? "visible" : "hidden";
+  }
+  function lightboxStep(delta) {
+    if (!lightbox.open || lightbox.animating) return;
+    lightbox.index += delta;
+    renderLightbox();
+  }
+  function finishCloseCleanup() {
+    cancelFlipAnims();
+    hideFlyer();
+    clearSourceHide();
+    lightbox.open = false;
+    lightbox.animating = false;
+    lightbox.touchActive = false;
+    lightbox.source = null;
+    revokeList(lightboxUrls);
+    var img = $("lightbox-img");
+    img.removeAttribute("src");
+    img.alt = "";
+    img.classList.remove("is-ghost");
+    var box = $("lightbox");
+    box.classList.remove("show");
+    box.classList.remove("is-flipping");
+    box.style.backgroundColor = "";
+    box.hidden = true;
+    document.documentElement.style.overflow = lightbox.prevOverflow || "";
+    document.body.style.overflow = "";
+    var target = lightbox.lastFocus;
+    lightbox.lastFocus = null;
+    if (target && typeof target.focus === "function") {
+      try { target.focus(); } catch (e) {}
+    }
+  }
+  function closeLightbox(force) {
+    if (!lightbox.open) return;
+    if (lightbox.animating && !force) return;
+    var source = lightbox.source;
+    var date = lightbox.date;
+    var index = lightbox.index;
+    var origin = source && source.origin;
+    var fallbackRect = source && rectOk(source.rect) ? source.rect : null;
+    var fallbackRadius = source && source.radius ? source.radius : "3px";
+    var target = findReturnTarget(date, index, origin);
+    var destRect = target ? copyRect(target.getBoundingClientRect()) : fallbackRect;
+    var destRadius = fallbackRadius;
+    if (target) {
+      try { destRadius = window.getComputedStyle(target).borderRadius || destRadius; } catch (e) {}
+    }
+    var img = $("lightbox-img");
+    var box = $("lightbox");
+    var fromRect = copyRect(img.getBoundingClientRect());
+    if (force || !canFlip() || !rectOk(fromRect) || !rectOk(destRect)) {
+      finishCloseCleanup();
+      return;
+    }
+    lightbox.animating = true;
+    box.classList.add("is-flipping");
+    img.classList.add("is-ghost");
+    if (target) target.classList.add("is-lightbox-source");
+    cancelFlipAnims();
+    var flyer = placeFlyer(fromRect, "0px");
+    flyer.style.objectFit = "contain";
+    flyer.src = img.currentSrc || img.src;
+    fadeBackdrop(box, false);
+    var anim = flipAnimate(flyer, fromRect, destRect, "0px", destRadius);
+    whenAnimDone(anim, finishCloseCleanup);
+  }
+
+
+  function clearPlaybackTimers() {
+    if (playback.cardAnim) { try { playback.cardAnim.cancel(); } catch (e) {} playback.cardAnim = null; }
+    if (playback.timer) { clearTimeout(playback.timer); playback.timer = null; }
+    if (playback.typeTimer) { clearTimeout(playback.typeTimer); playback.typeTimer = null; }
+    if (playback.remainTicker) { clearInterval(playback.remainTicker); playback.remainTicker = null; }
+  }
+  function revokePlaybackUrls() {
+    revokeList(playback.urls);
+    playback.urls = [];
+  }
+  function updatePlaybackButtons() {
+    var running = playback.active && !playback.paused && !playback.ended;
+    $("playback-pause").disabled = !running;
+    $("playback-resume").disabled = !playback.active || !playback.paused || playback.ended;
+    $("playback-replay").disabled = !playback.active;
+    $("playback-exit").disabled = !playback.active;
+  }
+  function monthHasPlayable(y, m) {
+    var dim = new Date(y, m, 0).getDate();
+    for (var d = 1; d <= dim; d++) {
+      if (dayHasContent(days[ymd(y, m, d)])) return true;
+    }
+    var sum = summaries[monthKey(y, m)];
+    return !!(sum && ((sum.title && sum.title.trim()) || (sum.body && sum.body.trim())));
+  }
+  function buildPlaybackSteps(y, m) {
+    var dim = new Date(y, m, 0).getDate();
+    var steps = [];
+    var skipped = 0;
+    for (var d = 1; d <= dim; d++) {
+      var date = ymd(y, m, d);
+      var rec = days[date];
+      if (!dayHasContent(rec)) { skipped += 1; continue; }
+      var photos = [];
+      (rec.photos || []).forEach(function (p) {
+        if (p && p.blob) photos.push({ blob: p.blob, name: p.name || "" });
+      });
+      steps.push({
+        type: "day",
+        date: date,
+        text: rec.text || "",
+        checkedIn: !!rec.checkedIn,
+        rest: !!rec.rest,
+        photos: photos
+      });
+    }
+    var mk = monthKey(y, m);
+    var sum = summaries[mk] || emptySummary(mk);
+    var title = (sum.title || "").trim();
+    var body = (sum.body || "").trim();
+    var saved = !!(title || body);
+    var temporary = false;
+    if (!saved) {
+      var gen = buildMonthReview(y, m);
+      title = gen.title;
+      body = gen.body;
+      temporary = true;
+    }
+    steps.push({
+      type: "summary",
+      month: mk,
+      year: y,
+      monthNum: m,
+      title: title,
+      body: body,
+      hasSummary: !!(title || body),
+      temporary: temporary,
+      skipped: skipped,
+      stats: monthStats(y, m)
+    });
+    return { steps: steps, skipped: skipped };
+  }
+  function fillPlaybackCard(step) {
+    revokePlaybackUrls();
+    var card = $("playback-card");
+    while (card.firstChild) card.removeChild(card.firstChild);
+    if (step.type === "day") {
+      var kick = document.createElement("div");
+      kick.className = "playback-kicker";
+      kick.textContent = "本月记录";
+      var h = document.createElement("h2");
+      var p = parseYmd(step.date);
+      h.textContent = p ? (p.m + "月" + p.d + "日") : step.date;
+      var tags = document.createElement("p");
+      var t1 = document.createElement("span");
+      t1.className = "tag";
+      t1.textContent = step.checkedIn ? "已打卡" : "未打卡";
+      var t2 = document.createElement("span");
+      t2.className = "tag";
+      t2.textContent = step.rest ? "休息日" : "非休息日";
+      tags.appendChild(t1);
+      tags.appendChild(t2);
+      card.appendChild(kick);
+      card.appendChild(h);
+      card.appendChild(tags);
+      if (step.photos.length) {
+        var label = document.createElement("p");
+        label.className = "playback-photo-label";
+        label.textContent = "照片 " + step.photos.length + " 张";
+        var row = document.createElement("div");
+        row.className = "playback-photos" + (step.photos.length > 1 ? " multi" : "");
+        step.photos.forEach(function (photo, idx) {
+          var img = document.createElement("img");
+          img.alt = photo.name || ("已保存照片 " + (idx + 1));
+          img.setAttribute("data-playback-photo", String(idx));
+          img.src = blobUrl(photo.blob, playback.urls);
+          row.appendChild(img);
+        });
+        card.appendChild(label);
+        card.appendChild(row);
+      }
+      if (step.text) {
+        var tx = document.createElement("p");
+        tx.className = "playback-text";
+        tx.textContent = step.text;
+        card.appendChild(tx);
+      } else {
+        var empty = document.createElement("p");
+        empty.className = "playback-empty";
+        empty.textContent = "这一天没有文字，只保留了标记" + (step.photos.length ? "或照片" : "") + "。";
+        card.appendChild(empty);
+      }
+      return;
+    }
+    var kick2 = document.createElement("div");
+    kick2.className = "playback-kicker";
+    kick2.textContent = "MONTH IN REVIEW";
+    var h2 = document.createElement("h2");
+    h2.id = "playback-sum-title";
+    h2.textContent = "";
+    var stats = document.createElement("div");
+    stats.className = "playback-stats";
+    var s = step.stats;
+    stats.textContent = "按你的记录直接计数（不是自动总结）：已记录 " + s.recorded + " / " + s.dim +
+      " 天，打卡 " + s.checked + " 天，休息日 " + s.rest + " 天，照片 " + s.photos + " 张。";
+    var body = document.createElement("p");
+    body.className = "playback-text";
+    body.id = "playback-sum-body";
+    body.textContent = "";
+    card.appendChild(kick2);
+    card.appendChild(h2);
+    card.appendChild(stats);
+    card.appendChild(body);
+  }
+  function currentPace() {
+    return playback.pace === "normal" ? "normal" : "slow";
+  }
+  function dayDwellMs(step) {
+    if (currentPace() === "slow") {
+      var n = step && step.photos ? step.photos.length : 0;
+      if (!step || step.type !== "day") return 11000;
+      if (n >= 2) return 12000;
+      if (n >= 1) return 11000;
+      return 10000;
+    }
+    var base = reduceMotion() ? 1600 : 2800;
+    if (!step || step.type !== "day") return base;
+    var extra = Math.min(3, step.photos ? step.photos.length : 0) * (reduceMotion() ? 200 : 400);
+    var textLen = (step.text || "").length;
+    if (textLen > 80) extra += reduceMotion() ? 200 : 600;
+    return base + extra;
+  }
+  function playbackRemainNow() {
+    if (!playback.active || playback.ended) return 0;
+    if (playback.paused || !playback.timer) return Math.max(0, playback.remain || 0);
+    return Math.max(0, playback.remain - (Date.now() - playback.armedAt));
+  }
+  function updatePlaybackRemainLabel() {
+    var el = $("playback-remain");
+    if (!el) return;
+    var pace = currentPace() === "slow" ? "慢速" : "正常";
+    if (!playback.active) { el.textContent = ""; return; }
+    if (playback.ended) { el.textContent = pace + " · 播放结束"; return; }
+    var step = playback.steps[playback.index];
+    if (step && step.type === "summary") {
+      el.textContent = playback.paused ? (pace + " · 已暂停打字") : (pace + " · 正在展示回顾");
+      return;
+    }
+    var sec = Math.ceil(playbackRemainNow() / 1000);
+    if (playback.paused) el.textContent = pace + " · 已暂停 · 剩余 " + sec + " 秒";
+    else el.textContent = pace + " · 本页剩余 " + sec + " 秒";
+  }
+  function startRemainTicker() {
+    if (playback.remainTicker) { clearInterval(playback.remainTicker); playback.remainTicker = null; }
+    updatePlaybackRemainLabel();
+    if (!playback.active || playback.paused || playback.ended) return;
+    if (!playback.timer && !playback.typing) return;
+    playback.remainTicker = setInterval(updatePlaybackRemainLabel, 200);
+  }
+  function updatePlaybackPaceButtons() {
+    var slow = currentPace() === "slow";
+    $("playback-speed-slow").setAttribute("aria-pressed", slow ? "true" : "false");
+    $("playback-speed-normal").setAttribute("aria-pressed", slow ? "false" : "true");
+  }
+  function setPlaybackPace(pace) {
+    playback.pace = pace === "normal" ? "normal" : "slow";
+    updatePlaybackPaceButtons();
+    if (!playback.active || playback.ended) {
+      updatePlaybackRemainLabel();
+      return;
+    }
+    var step = playback.steps[playback.index];
+    if (!step || step.type !== "day") {
+      updatePlaybackRemainLabel();
+      return;
+    }
+    var elapsed = Math.max(0, (playback.stepDwell || 0) - playbackRemainNow());
+    var dwell = dayDwellMs(step);
+    playback.stepDwell = dwell;
+    var remain = Math.max(800, dwell - elapsed);
+    if (playback.paused) {
+      playback.remain = remain;
+      updatePlaybackRemainLabel();
+      return;
+    }
+    armAdvance(remain);
+  }
+  function armAdvance(ms) {
+    playback.remain = ms;
+    playback.armedAt = Date.now();
+    if (playback.timer) { clearTimeout(playback.timer); playback.timer = null; }
+    if (!playback.active || playback.paused || playback.ended) {
+      startRemainTicker();
+      return;
+    }
+    playback.timer = setTimeout(function () {
+      playback.timer = null;
+      playback.remain = 0;
+      playbackNext();
+    }, ms);
+    startRemainTicker();
+  }
+  function startTypewriter(queue, done) {
+    playback.typeQueue = queue || [];
+    playback.typeIndex = 0;
+    playback.typePos = 0;
+    playback.typeDone = done;
+    playback.typing = true;
+    pumpPlaybackType();
+  }
+  function pumpPlaybackType() {
+    if (!playback.active || playback.paused || !playback.typing) return;
+    if (playback.typeIndex >= playback.typeQueue.length) {
+      playback.typing = false;
+      if (playback.typeDone) playback.typeDone();
+      return;
+    }
+    var item = playback.typeQueue[playback.typeIndex];
+    var el = $(item.id);
+    if (!el) {
+      playback.typeIndex += 1;
+      playback.typePos = 0;
+      pumpPlaybackType();
+      return;
+    }
+    var text = item.text || "";
+    var chars = Array.from(text);
+    /* bounded duration for long saved summaries, full text retained */
+    var batch = reduceMotion() ? chars.length : Math.max(1, Math.ceil(chars.length / 220));
+    playback.typePos = Math.min(chars.length, playback.typePos + batch);
+    el.textContent = chars.slice(0, playback.typePos).join("");
+    if (playback.typePos >= chars.length) {
+      playback.typeIndex += 1;
+      playback.typePos = 0;
+    }
+    if (reduceMotion()) pumpPlaybackType();
+    else playback.typeTimer = setTimeout(function () {
+      playback.typeTimer = null;
+      pumpPlaybackType();
+    }, 24);
+  }
+  function showPlaybackStep() {
+    if (!playback.active) return;
+    var step = playback.steps[playback.index];
+    if (!step) { finishPlayback(); return; }
+    fillPlaybackCard(step);
+    if (playback.cardAnim) { try { playback.cardAnim.cancel(); } catch (e) {} playback.cardAnim = null; }
+    if (!reduceMotion() && $("playback-card").animate) {
+      playback.cardAnim = $("playback-card").animate([{ opacity: .25, transform: "translateY(8px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 260, easing: "ease-out" });
+    }
+    $("playback-card").scrollTop = 0;
+    var totalDays = playback.steps.length - 1;
+    var hint = [];
+    if (playback.skipped > 0) hint.push("已跳过 " + playback.skipped + " 个没有记录的日期，没有编造内容。");
+    if (step.type === "day") {
+      var n = 0;
+      for (var i = 0; i < playback.steps.length; i++) if (playback.steps[i].type === "day") n += 1;
+      var cur = 0;
+      for (i = 0; i <= playback.index; i++) if (playback.steps[i].type === "day") cur += 1;
+      $("playback-caption").textContent = (playback.year && playback.month ? (playback.year + "年" + playback.month + "月 · ") : "") +
+        "第 " + cur + " / " + n + " 条记录" + (step.photos.length ? (" · 含 " + step.photos.length + " 张照片") : " · 无照片");
+      $("playback-hint").textContent = hint.join(" ");
+      playback.typing = false;
+      playback.stepDwell = dayDwellMs(step);
+      armAdvance(playback.stepDwell);
+      return;
+    }
+    $("playback-caption").textContent = (step.year && step.monthNum ? (step.year + "年" + step.monthNum + "月 · ") : "") +
+      (step.temporary ? "月度回顾（临时整理，未写入）" : "已保存的月度回顾");
+    if (!step.hasSummary) {
+      $("playback-sum-title").textContent = "本月还没有月度回顾";
+      $("playback-sum-body").textContent = "没有可展示的已保存回顾，也没有可整理的记录。不会编造内容。";
+      hint.push("没有已保存或可临时整理的回顾。");
+      $("playback-hint").textContent = hint.join(" ");
+      finishPlayback();
+      return;
+    }
+    hint.push(step.temporary
+      ? "结束画面是根据记录自动整理的临时回顾（非AI），不会写入或覆盖你的总结框。若要保存，请退出后到月度总结页预览并写入。"
+      : "正在展示你已保存的月度回顾。若这份文稿来自自动整理，那也只是根据记录统计和摘录（非AI），不是推断。");
+    $("playback-hint").textContent = hint.join(" ");
+    var queue = [];
+    if (step.title) queue.push({ id: "playback-sum-title", text: step.title });
+    else $("playback-sum-title").textContent = "月度回顾";
+    if (step.body) {
+      var parts = step.body.split(/\n{2,}/);
+      if (parts.length > 1) {
+        $("playback-sum-body").textContent = "";
+        /* type into one element, joining paragraphs with blank lines */
+        queue.push({ id: "playback-sum-body", text: step.body });
+      } else {
+        queue.push({ id: "playback-sum-body", text: step.body });
+      }
+    }
+    startTypewriter(queue, function () {
+      if (!playback.active) return;
+      finishPlayback();
+    });
+    startRemainTicker();
+  }
+  function playbackNext() {
+    if (!playback.active || playback.paused || playback.ended) return;
+    playback.index += 1;
+    if (playback.index >= playback.steps.length) { finishPlayback(); return; }
+    showPlaybackStep();
+  }
+  function finishPlayback() {
+    playback.ended = true;
+    playback.paused = false;
+    playback.typing = false;
+    clearPlaybackTimers();
+    updatePlaybackButtons();
+    updatePlaybackRemainLabel();
+    var hint = $("playback-hint").textContent || "";
+    if (hint.indexOf("播放结束") === -1) {
+      $("playback-hint").textContent = (hint ? hint + " " : "") + "播放结束。可重播或退出，退出后回到原来的编辑，不会改动任何记录。";
+    }
+  }
+  function startPlayback() {
+    if (playback.busy) return;
+    if (playback.active) { if (playback.ended) replayPlayback(); return; }
+    if (lightbox.open) closeLightbox(true);
+    var built = buildPlaybackSteps(viewYear, viewMonth);
+    if (!built.steps.length) {
+      setBanner("这个月还没有可播放的记录或已保存总结。", false);
+      return;
+    }
+    playback.busy = true;
+    playback.active = true;
+    playback.paused = false;
+    playback.ended = false;
+    playback.typing = false;
+    playback.steps = built.steps;
+    playback.skipped = built.skipped;
+    playback.index = 0;
+    playback.year = viewYear;
+    playback.month = viewMonth;
+    playback.lastFocus = document.activeElement;
+    playback.prevOverflow = document.documentElement.style.overflow;
+    playback.prevBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    var box = $("playback");
+    box.hidden = false;
+    box.classList.add("show");
+    updatePlaybackButtons();
+    updatePlaybackPaceButtons();
+    if (!monthHasPlayable(viewYear, viewMonth)) {
+      $("playback-caption").textContent = viewYear + "年" + viewMonth + "月";
+    }
+    showPlaybackStep();
+    $("playback-exit").focus();
+    setTimeout(function () { playback.busy = false; }, 200);
+  }
+  function pausePlayback() {
+    if (!playback.active || playback.paused || playback.ended) return;
+    playback.paused = true;
+    if (playback.timer) {
+      playback.remain = Math.max(0, playback.remain - (Date.now() - playback.armedAt));
+    }
+    clearPlaybackTimers();
+    updatePlaybackButtons();
+    updatePlaybackRemainLabel();
+    $("playback-resume").focus();
+  }
+  function resumePlayback() {
+    if (!playback.active || !playback.paused || playback.ended) return;
+    playback.paused = false;
+    updatePlaybackButtons();
+    if (playback.typing) {
+      pumpPlaybackType();
+      startRemainTicker();
+      return;
+    }
+    armAdvance(playback.remain > 0 ? playback.remain : 600);
+  }
+  function replayPlayback() {
+    if (!playback.active || playback.busy) return;
+    playback.busy = true;
+    clearPlaybackTimers();
+    revokePlaybackUrls();
+    playback.paused = false;
+    playback.ended = false;
+    playback.typing = false;
+    playback.index = 0;
+    updatePlaybackButtons();
+    showPlaybackStep();
+    setTimeout(function () { playback.busy = false; }, 200);
+  }
+  function stopPlayback() {
+    if (!playback.active && !$("playback").classList.contains("show")) return;
+    playback.busy = true;
+    clearPlaybackTimers();
+    revokePlaybackUrls();
+    playback.active = false;
+    playback.paused = false;
+    playback.ended = false;
+    playback.typing = false;
+    playback.steps = [];
+    playback.index = 0;
+    var box = $("playback");
+    box.classList.remove("show");
+    box.hidden = true;
+    var card = $("playback-card");
+    while (card.firstChild) card.removeChild(card.firstChild);
+    $("playback-caption").textContent = "";
+    $("playback-hint").textContent = "";
+    $("playback-remain").textContent = "";
+    playback.remain = 0;
+    playback.stepDwell = 0;
+    document.documentElement.style.overflow = playback.prevOverflow || "";
+    document.body.style.overflow = playback.prevBodyOverflow || "";
+    var target = playback.lastFocus;
+    playback.lastFocus = null;
+    if (target && typeof target.focus === "function") {
+      try { target.focus(); } catch (e) {}
+    }
+    setTimeout(function () { playback.busy = false; }, 200);
+  }
+  function exportMonthText() {
+    if (playback.active) stopPlayback();
+    var y = viewYear, m = viewMonth;
+    var mk = monthKey(y, m);
+    var dim = new Date(y, m, 0).getDate();
+    var dayRows = [];
+    for (var d = 1; d <= dim; d++) {
+      var date = ymd(y, m, d);
+      var rec = days[date];
+      if (!dayHasContent(rec)) continue;
+      dayRows.push({
+        date: date,
+        text: rec.text || "",
+        checkedIn: !!rec.checkedIn,
+        rest: !!rec.rest,
+        photoCount: rec.photos ? rec.photos.length : 0
+      });
+    }
+    var sum = summaries[mk] || emptySummary(mk);
+    var stats = monthStats(y, m);
+    var payload = {
+      app: "ryan-life-calendar",
+      kind: "month-text-for-summary",
+      version: 1,
+      note: "这是本机导出的当月文字、打卡/休息日、照片张数和已保存的月度回顾。不含照片文件。页面里的自动回顾是根据记录整理（非AI），这份导出不是另一次自动回顾。",
+      month: mk,
+      exportedAt: new Date().toISOString(),
+      stats: {
+        recorded: stats.recorded,
+        checked: stats.checked,
+        rest: stats.rest,
+        photos: stats.photos,
+        dim: stats.dim,
+        statsNote: "以上数字是按记录直接计数，不是 AI 总结。"
+      },
+      savedSummary: {
+        title: sum.title || "",
+        body: sum.body || "",
+        hasSavedSummary: !!((sum.title && sum.title.trim()) || (sum.body && sum.body.trim()))
+      },
+      days: dayRows
+    };
+    var json = JSON.stringify(payload, null, 2);
+    var blob = new Blob([json], { type: "application/json;charset=utf-8" });
+    var name = "生活日历-" + mk + "-本月文字.json";
+    var file = new File([blob], name, { type: "application/json" });
+    var savedMsg = "已准备本月文字导出 " + name + "。这是本机文件，不是另一次自动回顾。";
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: name, text: "供以后总结用的本月文字导出，不是自动总结，也不含照片。" }).then(function () {
+        setBanner("已打开分享菜单。请把文件存到「文件」。这不是另一次自动回顾，也不是完整备份。", false);
+      }).catch(function (e) {
+        if (e && e.name === "AbortError") return;
+        downloadNamed(blob, name, savedMsg);
+      });
+      return;
+    }
+    downloadNamed(blob, name, savedMsg);
+  }
+  function downloadNamed(blob, name, message) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    if (isAppleTouch()) {
+      setBanner((message || "已生成文件。") + " 若没有出现下载，请查看新打开的标签并存到「文件」。", false);
+      window.open(url, "_blank");
+    } else {
+      setBanner(message || ("已生成文件 " + name + "。"), false);
+    }
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 4000);
+  }
+
+  function bind() {
+    bindLightbox();
+    $("tab-cal").addEventListener("click", function () { showPanel("cal"); });
+    $("tab-sum").addEventListener("click", function () { showPanel("sum"); });
+    $("btn-play-month").addEventListener("click", function () { requestPlayMonth(); });
+    $("btn-play-month-sum").addEventListener("click", function () { requestPlayMonth(); });
+    $("btn-generate-review").addEventListener("click", openReviewPreview);
+    $("review-cancel").addEventListener("click", closeReviewPreview);
+    $("review-apply").addEventListener("click", applyReviewPreview);
+    ["review-modal", "play-review-modal"].forEach(function (id) {
+      $(id).addEventListener("keydown", function (e) {
+        if (e.key !== "Tab") return;
+        var buttons = Array.prototype.slice.call($(id).querySelectorAll("button")).filter(function (el) { return !el.disabled; });
+        if (!buttons.length) return;
+        var i = buttons.indexOf(document.activeElement);
+        i = e.shiftKey ? (i <= 0 ? buttons.length - 1 : i - 1) : (i < 0 || i === buttons.length - 1 ? 0 : i + 1);
+        e.preventDefault(); buttons[i].focus();
+      });
+    });
+    $("play-review-cancel").addEventListener("click", closePlayReviewChoice);
+    $("play-review-goto").addEventListener("click", function () {
+      closePlayReviewChoice();
+      showPanel("sum");
+      openReviewPreview();
+    });
+    $("play-review-temp").addEventListener("click", function () {
+      closePlayReviewChoice();
+      startPlayback({ useTemporaryReview: true });
+    });
+    $("btn-export-month-text").addEventListener("click", exportMonthText);
+    $("playback-exit").addEventListener("click", function () { stopPlayback(); });
+    $("playback-pause").addEventListener("click", function () { pausePlayback(); });
+    $("playback-resume").addEventListener("click", function () { resumePlayback(); });
+    $("playback-replay").addEventListener("click", function () { replayPlayback(); });
+    $("playback-speed-slow").addEventListener("click", function () { setPlaybackPace("slow"); });
+    $("playback-speed-normal").addEventListener("click", function () { setPlaybackPace("normal"); });
+    $("playback").addEventListener("keydown", function (e) {
+      if (!playback.active || e.key !== "Tab") return;
+      var buttons = Array.prototype.slice.call($("playback").querySelectorAll("button")).filter(function (el) { return !el.disabled; });
+      if (!buttons.length) return;
+      var i = buttons.indexOf(document.activeElement);
+      i = e.shiftKey ? (i <= 0 ? buttons.length - 1 : i - 1) : (i < 0 || i === buttons.length - 1 ? 0 : i + 1);
+      e.preventDefault();
+      buttons[i].focus();
+    });
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden && playback.active) pausePlayback();
+    });
+    window.addEventListener("pagehide", function () { if (playback.active) stopPlayback(); });
+    $("btn-prev").addEventListener("click", function () { shiftMonth(-1); });
+    $("btn-next").addEventListener("click", function () { shiftMonth(1); });
+    $("btn-today").addEventListener("click", goToday);
+    $("btn-goto-today").addEventListener("click", goToday);
+    $("btn-checkin").addEventListener("click", toggleCheckin);
+    $("btn-toggle-rest").addEventListener("click", toggleRest);
+    $("diary-text").addEventListener("input", onTextInput);
+    $("sum-title").addEventListener("input", onSumInput);
+    $("sum-body").addEventListener("input", onSumInput);
+    $("btn-add-photo").addEventListener("click", function () { $("photo-input").click(); });
+    $("photo-input").addEventListener("change", function () {
+      /* FileList is live: clearing input.value empties it. Copy to an array first. */
+      var files = Array.prototype.slice.call($("photo-input").files || []);
+      $("photo-input").value = "";
+      addPhotos(files);
+    });
+    $("import-cancel").addEventListener("click", closeImportModal);
+    $("import-merge").addEventListener("click", function () { confirmImport("merge"); });
+    $("import-replace").addEventListener("click", function () {
+      if (window.confirm("全部替换会删除当前本机里已有的记录和总结，再写入导入内容。确定吗？")) {
+        confirmImport("replace");
+      }
+    });
+    mountDataActions();
+  }
+
+  function start() {
+    var t = todayDate();
+    var p = parseYmd(t);
+    viewYear = p.y;
+    viewMonth = p.m;
+    selectedDate = t;
+    bind();
+    renderMonthHead();
+    fillEditor();
+    renderGrid();
+    renderSummaryEditor();
+    renderStats();
+    initStorage().then(function () {
+      fillEditor();
+      renderGrid();
+      renderSummaryEditor();
+      renderStats();
+    });
+  }
+
+  start();
+})();
+</script>
+</body>
+</html>
