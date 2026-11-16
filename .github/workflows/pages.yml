@@ -58,7 +58,7 @@ jobs:
         run: |
           set -euo pipefail
           # index.html 里不允许再出现站点根绝对路径；否则会打到域名根上 404
-          if grep -nE '(href|src)="/(?!Testing-/lina/)' -P _site/lina/index.html; then
+          if grep -nP '(href|src)="/(?!Testing-/lina/)' _site/lina/index.html; then
             echo "::error::lina/index.html 仍有未加 base 的根绝对路径"
             exit 1
           fi
