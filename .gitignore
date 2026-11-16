@@ -1,0 +1,21 @@
+# 依赖与构建中间产物
+node_modules/
+_site/
+
+# 本机环境与凭证
+.env
+.env.*
+*.local
+.wrangler/
+.herenow/
+
+# 用户私人数据：日历的日记备份、LINA 的编辑导出，都不属于仓库
+life-calendar-backup-*.json
+lina-locker-edits*.json
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

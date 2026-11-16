@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b1b1f">
+<title>作品索引 · Testing-</title>
+<meta name="description" content="三个独立网页作品的入口：Camille 手帐、LINA 3D 储物柜、生活电子日历。">
+<style>
+  :root {
+    --bg: #15151a;
+    --card: #1f1f26;
+    --card-hover: #26262f;
+    --line: #33333d;
+    --ink: #f2f1ee;
+    --ink-soft: #a8a6a0;
+    --accent: #d9c7a7;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding: clamp(24px, 6vw, 72px) clamp(18px, 5vw, 40px) 56px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+      "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  header { margin-bottom: clamp(28px, 6vw, 48px); }
+  .kicker {
+    margin: 0 0 10px;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    margin: 0 0 12px;
+    font-size: clamp(26px, 7vw, 40px);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  .lede { margin: 0; color: var(--ink-soft); font-size: clamp(14px, 3.6vw, 16px); }
+  ul.works { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .card {
+    display: block;
+    padding: clamp(18px, 4.5vw, 26px);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: inherit;
+    text-decoration: none;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  }
+  .card:hover, .card:focus-visible {
+    background: var(--card-hover);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .card h2 {
+    margin: 0 0 6px;
+    font-size: clamp(17px, 4.6vw, 21px);
+    font-weight: 600;
+  }
+  .card h2 .arrow { color: var(--accent); margin-left: 6px; }
+  .card p { margin: 0; color: var(--ink-soft); font-size: clamp(13px, 3.4vw, 15px); }
+  .tags { margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .tags span {
+    padding: 3px 9px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  footer {
+    margin-top: clamp(32px, 7vw, 52px);
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+  footer h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: var(--ink); }
+  footer ul { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
+  @media (prefers-reduced-motion: reduce) {
+    .card { transition: none; }
+    .card:hover, .card:focus-visible { transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker">Works</p>
+    <h1>三个网页作品</h1>
+    <p class="lede">每个作品都是独立的静态网页，点开即用。下面只是入口索引，不改动作品本身。</p>
+  </header>
+
+  <ul class="works">
+    <li>
+      <a class="card" href="./camille/">
+        <h2>Camille · 手帐<span class="arrow" aria-hidden="true">&rarr;</span></h2>
+        <p>可翻页的手帐本。解锁后可以改字、换字体字号、拖动与旋转缩放贴纸、换图、删除，并导出成果。</p>
+        <p class="tags"><span>单文件 HTML</span><span>可视化编辑</span><span>可导出</span><span>编辑存在本机</span></p>
+      </a>
+    </li>
+    <li>
+      <a class="card" href="./lina/">
+        <h2>LINA · 3D 储物柜<span class="arrow" aria-hidden="true">&rarr;</span></h2>
+        <p>WebGL 真 3D 个人站练习稿。文字、图片与配色都可在线编辑，支持导出导入 JSON。人物 LINA CHEN 是虚拟人设。</p>
+        <p class="tags"><span>Vite + React</span><span>three.js / R3F</span><span>可编辑配色</span><span>需要 WebGL</span></p>
+      </a>
+    </li>
+    <li>
+      <a class="card" href="./calendar/">
+        <h2>生活电子日历 · 功能 Demo<span class="arrow" aria-hidden="true">&rarr;</span></h2>
+        <p>本机记录每日文字、照片与打卡；按当月真实记录自动整理月度回顾（统计加按日摘录，不是 AI 生成），并可按日自动播放。</p>
+        <p class="tags"><span>IndexedDB</span><span>自动播放</span><span>月度回顾</span><span>可导出备份</span></p>
+      </a>
+    </li>
+  </ul>
+
+  <footer>
+    <h2>关于数据</h2>
+    <ul>
+      <li>三个作品的编辑内容与记录都只存在你当前这台设备的浏览器里（localStorage / IndexedDB），不会上传到网站，也没有云同步。</li>
+      <li>换浏览器、换设备或换网址都读不到原来的数据。日历里重要的记录请用它自带的导出功能自己留备份。</li>
+      <li>清理浏览器数据会一并清掉这些内容。</li>
+    </ul>
+  </footer>
+</div>
+</body>
+</html>
